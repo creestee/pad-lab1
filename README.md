@@ -79,6 +79,26 @@ Request Ride Service:
         }
         ```
 
+- Get Ride Info :
+    - Endpoint: `/api/rides/{ride_id}`
+    - Method: GET
+    - Response:
+        ```json
+        {
+            "rideId": "abc123",
+            "passengerId": "12345",
+                        "pickupLocation": {
+                "latitude": 37.7749,
+                "longitude": -122.4194
+            },
+            "dropOffLocation": {
+                "latitude": 37.7899,
+                "longitude": -122.4057
+            },
+            "status": "pending"
+        }
+        ```
+
 - Cancel a Ride :
     - Endpoint: `/api/rides/cancel`
     - Method: POST
