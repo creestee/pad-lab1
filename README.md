@@ -87,7 +87,8 @@ Request Ride Service:
         {
             "rideId": "abc123",
             "passengerId": "12345",
-                        "pickupLocation": {
+            "driverId": null,
+            "pickupLocation": {
                 "latitude": 37.7749,
                 "longitude": -122.4194
             },
