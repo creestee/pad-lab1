@@ -1,4 +1,4 @@
-package at.lab1.rides.config;
+package at.lab1.drivers.config;
 
 import org.springframework.amqp.core.Queue;
 import org.springframework.context.annotation.Bean;
@@ -8,13 +8,13 @@ import org.springframework.context.annotation.Configuration;
 public class RabbitMQConfig {
 
     @Bean
-    public Queue createRideAssignmentQueue() {
-        return new Queue("q.ride-assignment");
+    public Queue createRideAcceptanceQueue() {
+        return new Queue("q.ride-acceptance");
     }
 
     @Bean
-    public Queue createRideCancellationQueue() {
-        return new Queue("q.ride-cancellation");
+    public Queue createRideCompletionQueue() {
+        return new Queue("q.ride-completion");
     }
 
 }

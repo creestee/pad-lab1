@@ -28,16 +28,14 @@ public class RidesController {
     @PostMapping(path = "/request")
     public ResponseEntity<RequestRideResponse> requestRide(@RequestBody RequestRide ride) {
         log.info("Request ride : {}", ride);
-        ridesService.requestRide(ride);
 
-        return new ResponseEntity<>(HttpStatus.OK);
+        return new ResponseEntity<>(ridesService.requestRide(ride), HttpStatus.OK);
     }
 
     @PostMapping(path = "/cancel")
     public ResponseEntity<CancelRideResponse> cancelRide(@RequestBody CancelRide ride) {
         log.info("Cancel Ride : {}", ride);
-        ridesService.cancelRide(ride);
 
-        return new ResponseEntity<>(HttpStatus.OK);
+        return new ResponseEntity<>(ridesService.cancelRide(ride), HttpStatus.OK);
     }
 }
