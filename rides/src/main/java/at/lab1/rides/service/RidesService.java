@@ -7,8 +7,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -57,13 +55,13 @@ public class RidesService {
         newRide.setPickupLocation(requestRide.getPickupLocation());
         newRide.setDropoffLocation(requestRide.getDropoffLocation());
 
-        rabbitTemplate.convertAndSend("q.ride-requests", gson.toJson(newRide));
+        rabbitTemplate.convertAndSend("q.ride-assignment", gson.toJson(newRide));
 
         return new RequestRideResponse(newRide.getRideId(), newRide.getStatus());
     }
 
     public CancelRideResponse cancelRide(CancelRide cancelRide) {
-        rabbitTemplate.convertAndSend("q.ride-cancels", gson.toJson(cancelRide));
+        rabbitTemplate.convertAndSend("q.ride-cancellation", gson.toJson(cancelRide));
 
         return new CancelRideResponse(cancelRide.getRideId(), RideStatus.CANCELED);
     }

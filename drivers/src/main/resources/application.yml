@@ -1,9 +1,28 @@
+server:
+  port : 6060
+
 spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/driversDB
+    username: user1
+    password: password1
   rabbitmq:
     host: localhost
     port: 5672
     username: guest
     password: guest
+  jpa:
+    properties:
+      javax:
+        persistence:
+          create-database-schemas: true
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
 resilience4j:
   instances:
     driversService:

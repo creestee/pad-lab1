@@ -17,7 +17,7 @@ public class DriversService {
     private final Gson gson;
     private final RabbitTemplate rabbitTemplate;
 
-    @RabbitListener(queues = {"q.ride-requests"})
+    @RabbitListener(queues = {"q.ride-assignment"})
     private void driverAssignment(String rideRequest) {
         log.info("New ride request : {}", rideRequest);
         Ride ride = new Ride();
@@ -35,7 +35,7 @@ public class DriversService {
         }
     }
 
-    @RabbitListener(queues = {"q.ride-cancels"})
+    @RabbitListener(queues = {"q.ride-cancellation"})
     private void notifyCancelRide(String rideCancel) {
         log.info("New ride cancel : {}", rideCancel);
         CancelRide ride = new CancelRide();

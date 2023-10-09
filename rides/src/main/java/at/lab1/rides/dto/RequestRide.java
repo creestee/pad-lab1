@@ -11,7 +11,7 @@ public class RequestRide {
 
     private Long passengerId;
 
-    private Location pickupLocation;
+    private String pickupLocation;
 
-    private Location dropoffLocation;
+    private String dropoffLocation;
 }

@@ -16,9 +16,9 @@ public class Ride {
 
     private Long driverId;
 
-    private Location pickupLocation;
+    private String pickupLocation;
 
-    private Location dropoffLocation;
+    private String dropoffLocation;
 
     private RideStatus status;
 }
