@@ -1,5 +1,6 @@
 package at.lab1.drivers.dto;
 
+import at.lab1.drivers.dto.enums.RideStatus;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -7,11 +8,17 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
-public class RequestRide {
+public class Ride {
+
+    private Long rideId;
 
     private Long passengerId;
+
+    private Long driverId;
 
     private Location pickupLocation;
 
     private Location dropoffLocation;
+
+    private RideStatus status;
 }

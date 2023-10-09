@@ -10,3 +10,7 @@ spring:
     port: 5672
     username: guest
     password: guest
+resilience4j:
+  instances:
+    ridesService:
+      timeoutDuration=5s:

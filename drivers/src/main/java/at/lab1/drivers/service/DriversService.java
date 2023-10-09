@@ -20,12 +20,15 @@ public class DriversService {
     @RabbitListener(queues = {"q.ride-requests"})
     private void driverAssignment(String rideRequest) {
         log.info("New ride request : {}", rideRequest);
-        RequestRide ride = new RequestRide();
+        Ride ride = new Ride();
         try {
             Gson gson = new Gson();
-            ride = gson.fromJson(rideRequest, RequestRide.class);
+            ride = gson.fromJson(rideRequest, Ride.class);
 
             // TODO: to implement driver assignment
+
+            ride.setDriverId(1L); // from DB
+            rabbitTemplate.convertAndSend("q.ride-acceptance", gson.toJson(ride));
 
         } catch (Exception e){
             log.error(e.getMessage());
