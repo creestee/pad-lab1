@@ -14,6 +14,7 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -28,6 +29,7 @@ public class DriversService {
     private final DriverRepository driverRepository;
 
     @RabbitListener(queues = {"q.ride-assignment"})
+    @Transactional
     private void driverAssignment(@Payload String rideRequest) throws NotAvailableDriverException {
         log.info("New ride request : {}", rideRequest);
         try {
@@ -49,6 +51,7 @@ public class DriversService {
     }
 
     @RabbitListener(queues = {"q.ride-cancellation"})
+    @Transactional
     private void notifyCancelRide(@Payload String cancelledRide) {
         log.info("New ride cancel : {}", cancelledRide);
         try {
@@ -64,6 +67,7 @@ public class DriversService {
         }
     }
 
+    @Transactional
     public Availability changeAvailability(Availability availability) {
         DriverEntity driverEntity = driverRepository.findById(availability.getDriverId())
                 .orElseThrow(() -> new EntryNotFoundException(DRIVER_NOT_FOUND, String.valueOf(availability.getDriverId())));

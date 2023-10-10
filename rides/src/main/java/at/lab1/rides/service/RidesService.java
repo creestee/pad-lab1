@@ -28,6 +28,7 @@ public class RidesService {
     private final RideMapper rideMapper;
 
     @RabbitListener(queues = {"q.ride-acceptance"})
+    @Transactional
     private void onRideAcceptance(@Payload String acceptedRide) {
         log.info("New accepted ride : {}", acceptedRide);
         try {
@@ -44,6 +45,7 @@ public class RidesService {
     }
 
     @RabbitListener(queues = {"q.ride-completion"})
+    @Transactional
     private void onRideCompletion(@Payload String completedRide) {
         log.info("New completed ride : {}", completedRide);
         try {
@@ -76,6 +78,7 @@ public class RidesService {
         return new RequestRideResponse(rideEntity.getId(), newRide.getStatus());
     }
 
+    @Transactional
     public CancelRideResponse cancelRide(CancelRide cancelRide) {
         RideEntity rideEntity = rideRepository.findById(cancelRide.getRideId())
                 .orElseThrow(() -> new EntryNotFoundException(RIDE_NOT_FOUND, String.valueOf(cancelRide.getRideId())));
