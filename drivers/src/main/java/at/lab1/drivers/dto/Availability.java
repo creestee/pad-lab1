@@ -10,7 +10,5 @@ import lombok.NoArgsConstructor;
 @Data
 public class Availability {
 
-    private Long driverId;
-
     private AvailabilityStatus availabilityStatus;
 }

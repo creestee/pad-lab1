@@ -8,9 +8,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
-public class CancelRideResponse {
+public class ChangeRideState {
 
-    private Long rideId;
-
-    private RideStatus status;
+    RideStatus rideStatus;
 }

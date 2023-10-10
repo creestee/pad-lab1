@@ -1,8 +1,7 @@
 package at.lab1.drivers.controller;
 
 import at.lab1.drivers.dto.Availability;
-import at.lab1.drivers.dto.CompleteRide;
-import at.lab1.drivers.dto.CompleteRideResponse;
+import at.lab1.drivers.dto.ChangeRideState;
 import at.lab1.drivers.service.DriversService;
 import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
 import lombok.AllArgsConstructor;
@@ -22,28 +21,28 @@ public class DriversController {
 
     private final DriversService driversService;
 
-    @PostMapping(path = "/availability")
+    @PutMapping(path = "/{id}/availability")
     @TimeLimiter(name = "driversService")
-    public CompletableFuture<ResponseEntity<Availability>> changeAvailability(@RequestBody Availability availability) {
+    public CompletableFuture<ResponseEntity<Availability>> changeAvailability(@PathVariable Long id, @RequestBody Availability availability) {
         log.info("Change availability : {}", availability);
 
         return CompletableFuture.supplyAsync(() -> {
             try {
-                return ResponseEntity.ok(driversService.changeAvailability(availability));
+                return ResponseEntity.ok(driversService.changeAvailability(id, availability));
             } catch (Exception e) {
                 throw new ResponseStatusException(HttpStatus.REQUEST_TIMEOUT);
             }
         });
     }
 
-    @PostMapping(path = "/complete-ride")
+    @PutMapping(path = "/{id}/ride")
     @TimeLimiter(name = "driversService")
-    public CompletableFuture<ResponseEntity<CompleteRideResponse>> completeRide(@RequestBody CompleteRide completeRide) {
-        log.info("Complete ride : {}", completeRide);
+    public CompletableFuture<ResponseEntity<ChangeRideState>> changeRideState(@PathVariable Long id, @RequestBody ChangeRideState state) {
+        log.info("Change ride state : {}", state);
 
         return CompletableFuture.supplyAsync(() -> {
             try {
-                return ResponseEntity.ok(driversService.completeRide(completeRide));
+                return ResponseEntity.ok(driversService.changeRideState(id, state));
             } catch (Exception e) {
                 throw new ResponseStatusException(HttpStatus.REQUEST_TIMEOUT);
             }

@@ -38,6 +38,7 @@ public class RidesService {
                     .orElseThrow(() -> new EntryNotFoundException(RIDE_NOT_FOUND, String.valueOf(ride.getId())));
 
             rideEntity.setStatus(RideStatus.IN_PROGRESS);
+            rideEntity.setDriverId(ride.getDriverId());
             rideRepository.saveAndFlush(rideEntity);
         } catch (Exception e){
             log.error(e.getMessage());
@@ -79,15 +80,18 @@ public class RidesService {
     }
 
     @Transactional
-    public CancelRideResponse cancelRide(CancelRide cancelRide) {
-        RideEntity rideEntity = rideRepository.findById(cancelRide.getRideId())
-                .orElseThrow(() -> new EntryNotFoundException(RIDE_NOT_FOUND, String.valueOf(cancelRide.getRideId())));
+    public ChangeRideState changeRideState(Long id, ChangeRideState changeRideState) {
+        RideEntity rideEntity = rideRepository.findById(id)
+                .orElseThrow(() -> new EntryNotFoundException(RIDE_NOT_FOUND, String.valueOf(id)));
 
-        rideEntity.setStatus(RideStatus.CANCELED);
+        rideEntity.setStatus(changeRideState.getRideStatus());
         rideRepository.saveAndFlush(rideEntity);
 
-        rabbitTemplate.convertAndSend("q.ride-cancellation", gson.toJson(rideMapper.toElement(rideEntity)));
-        return new CancelRideResponse(cancelRide.getRideId(), RideStatus.CANCELED);
+        if (changeRideState.getRideStatus().equals(RideStatus.CANCELED)) {
+            rabbitTemplate.convertAndSend("q.ride-cancellation", gson.toJson(rideMapper.toElement(rideEntity)));
+        }
+
+        return new ChangeRideState(changeRideState.getRideStatus());
     }
 
     public Ride getRide(Long id) {

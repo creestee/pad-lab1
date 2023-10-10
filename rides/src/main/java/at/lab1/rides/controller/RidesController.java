@@ -34,7 +34,7 @@ public class RidesController {
         });
     }
 
-    @PostMapping(path = "/request")
+    @PostMapping
     @TimeLimiter(name = "ridesService")
     public CompletableFuture<ResponseEntity<RequestRideResponse>> requestRide(@RequestBody RequestRide ride) {
         log.info("Request ride : {}", ride);
@@ -49,14 +49,14 @@ public class RidesController {
         });
     }
 
-    @PostMapping(path = "/cancel")
+    @PutMapping(path = "/{id}/state")
     @TimeLimiter(name = "ridesService")
-    public CompletableFuture<ResponseEntity<CancelRideResponse>> cancelRide(@RequestBody CancelRide ride) {
-        log.info("Cancel Ride : {}", ride);
+    public CompletableFuture<ResponseEntity<ChangeRideState>> changeRideState(@PathVariable Long id, @RequestBody ChangeRideState state) {
+        log.info("Change Ride State : {}", state);
 
         return CompletableFuture.supplyAsync(() -> {
             try {
-                return ResponseEntity.ok(ridesService.cancelRide(ride));
+                return ResponseEntity.ok(ridesService.changeRideState(id, state));
             } catch (Exception e) {
                 log.error(e.getMessage());
                 throw new ResponseStatusException(HttpStatus.REQUEST_TIMEOUT);

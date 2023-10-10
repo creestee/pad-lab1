@@ -18,7 +18,7 @@ public class RideEntity {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "passenger_id")
+    @JoinColumn(name = "passenger_id", nullable = false)
     private PassengerEntity passenger;
 
     @Column(name = "pickup_location", nullable = false)
@@ -26,6 +26,9 @@ public class RideEntity {
 
     @Column(name = "dropoff_location", nullable = false)
     private String dropoffLocation;
+
+    @Column(name = "driver_id")
+    private Long driverId;
 
     @Enumerated(value = EnumType.STRING)
     private RideStatus status;

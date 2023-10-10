@@ -68,17 +68,27 @@ public class DriversService {
     }
 
     @Transactional
-    public Availability changeAvailability(Availability availability) {
-        DriverEntity driverEntity = driverRepository.findById(availability.getDriverId())
-                .orElseThrow(() -> new EntryNotFoundException(DRIVER_NOT_FOUND, String.valueOf(availability.getDriverId())));
+    public Availability changeAvailability(Long id, Availability availability) {
+        DriverEntity driverEntity = driverRepository.findById(id)
+                .orElseThrow(() -> new EntryNotFoundException(DRIVER_NOT_FOUND, String.valueOf(id)));
         driverEntity.setStatus(availability.getAvailabilityStatus());
         driverRepository.saveAndFlush(driverEntity);
         return availability;
     }
 
-    public CompleteRideResponse completeRide(CompleteRide completeRide) {
-        CompleteRideResponse completedRide = new CompleteRideResponse(completeRide.getRideId(), RideStatus.COMPLETED);
-        rabbitTemplate.convertAndSend("q.ride-completion", completedRide);
-        return completedRide;
+    public ChangeRideState changeRideState(Long id, ChangeRideState state) {
+        if (state.getRideStatus().equals(RideStatus.COMPLETED)) {
+
+            DriverEntity driverEntity = driverRepository.findById(id)
+                    .orElseThrow(() -> new EntryNotFoundException(DRIVER_NOT_FOUND, String.valueOf(id)));
+
+            driverEntity.setStatus(AvailabilityStatus.ONLINE);
+            driverRepository.saveAndFlush(driverEntity);
+
+            ChangeRideState newRideState = new ChangeRideState(state.getRideId(), RideStatus.COMPLETED);
+            rabbitTemplate.convertAndSend("q.ride-completion", newRideState);
+            return newRideState;
+        }
+        return state;
     }
 }
