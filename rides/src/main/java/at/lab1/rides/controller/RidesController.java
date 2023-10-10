@@ -1,9 +1,6 @@
 package at.lab1.rides.controller;
 
-import at.lab1.rides.dto.CancelRide;
-import at.lab1.rides.dto.CancelRideResponse;
-import at.lab1.rides.dto.RequestRide;
-import at.lab1.rides.dto.RequestRideResponse;
+import at.lab1.rides.dto.*;
 import at.lab1.rides.service.RidesService;
 import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
 import lombok.AllArgsConstructor;
@@ -23,9 +20,18 @@ public class RidesController {
     private final RidesService ridesService;
 
     @GetMapping(path = "/{id}")
-    public void getRide(@PathVariable Integer id) {
+    @TimeLimiter(name = "ridesService")
+    public CompletableFuture<ResponseEntity<Ride>> getRide(@PathVariable Long id) {
         log.info("Get ride : {}", id);
-        // TODO: to implement
+
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                return ResponseEntity.ok(ridesService.getRide(id));
+            } catch (Exception e) {
+                log.error(e.getMessage());
+                throw new ResponseStatusException(HttpStatus.REQUEST_TIMEOUT);
+            }
+        });
     }
 
     @PostMapping(path = "/request")
@@ -37,6 +43,7 @@ public class RidesController {
             try {
                 return ResponseEntity.ok(ridesService.requestRide(ride));
             } catch (Exception e) {
+                log.error(e.getMessage());
                 throw new ResponseStatusException(HttpStatus.REQUEST_TIMEOUT);
             }
         });
@@ -51,6 +58,7 @@ public class RidesController {
             try {
                 return ResponseEntity.ok(ridesService.cancelRide(ride));
             } catch (Exception e) {
+                log.error(e.getMessage());
                 throw new ResponseStatusException(HttpStatus.REQUEST_TIMEOUT);
             }
         });

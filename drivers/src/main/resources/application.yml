@@ -11,6 +11,14 @@ spring:
     port: 5672
     username: guest
     password: guest
+    listener:
+      simple:
+        retry:
+          enabled: true
+          initial-interval: 3000
+          max-attempts: 10
+          max-interval: 10000
+          multiplier: 1.2
   jpa:
     properties:
       javax:
@@ -21,7 +29,7 @@ spring:
         format_sql: true
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: false
 
 resilience4j:
   instances:

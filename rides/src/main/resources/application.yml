@@ -21,7 +21,7 @@ spring:
         format_sql: true
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: false
 
 resilience4j:
   instances:

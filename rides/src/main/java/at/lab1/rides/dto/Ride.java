@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @Data
 public class Ride {
 
-    private Long rideId;
+    private Long id;
 
     private Long passengerId;
 
