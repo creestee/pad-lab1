@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Data
-public class ChangeRideState {
+public class CompleteRide {
 
     private Long rideId;
 

@@ -1,7 +1,7 @@
 package at.lab1.drivers.controller;
 
 import at.lab1.drivers.dto.Availability;
-import at.lab1.drivers.dto.ChangeRideState;
+import at.lab1.drivers.dto.CompleteRide;
 import at.lab1.drivers.service.DriversService;
 import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
 import lombok.AllArgsConstructor;
@@ -37,12 +37,12 @@ public class DriversController {
 
     @PutMapping(path = "/{id}/ride")
     @TimeLimiter(name = "driversService")
-    public CompletableFuture<ResponseEntity<ChangeRideState>> changeRideState(@PathVariable Long id, @RequestBody ChangeRideState state) {
+    public CompletableFuture<ResponseEntity<CompleteRide>> completeRide(@PathVariable Long id, @RequestBody CompleteRide state) {
         log.info("Change ride state : {}", state);
 
         return CompletableFuture.supplyAsync(() -> {
             try {
-                return ResponseEntity.ok(driversService.changeRideState(id, state));
+                return ResponseEntity.ok(driversService.completeRide(id, state));
             } catch (Exception e) {
                 throw new ResponseStatusException(HttpStatus.REQUEST_TIMEOUT);
             }

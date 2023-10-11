@@ -76,7 +76,7 @@ public class DriversService {
         return availability;
     }
 
-    public ChangeRideState changeRideState(Long id, ChangeRideState state) {
+    public CompleteRide completeRide(Long id, CompleteRide state) {
         if (state.getRideStatus().equals(RideStatus.COMPLETED)) {
 
             DriverEntity driverEntity = driverRepository.findById(id)
@@ -85,7 +85,7 @@ public class DriversService {
             driverEntity.setStatus(AvailabilityStatus.ONLINE);
             driverRepository.saveAndFlush(driverEntity);
 
-            ChangeRideState newRideState = new ChangeRideState(state.getRideId(), RideStatus.COMPLETED);
+            CompleteRide newRideState = new CompleteRide(state.getRideId(), RideStatus.COMPLETED);
             rabbitTemplate.convertAndSend("q.ride-completion", newRideState);
             return newRideState;
         }
