@@ -1,6 +1,7 @@
 package at.lab1.drivers.config;
 
-import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.core.*;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -8,13 +9,16 @@ import org.springframework.context.annotation.Configuration;
 public class RabbitMQConfig {
 
     @Bean
+    @Qualifier("ride-acceptance-queue")
     public Queue createRideAcceptanceQueue() {
-        return new Queue("q.ride-acceptance");
+        return QueueBuilder.durable("q.ride-acceptance")
+                .build();
     }
 
     @Bean
+    @Qualifier("ride-completion-queue")
     public Queue createRideCompletionQueue() {
-        return new Queue("q.ride-completion");
+        return QueueBuilder.durable("q.ride-completion")
+                .build();
     }
-
 }

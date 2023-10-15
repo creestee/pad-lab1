@@ -29,7 +29,7 @@ public class RidesService {
 
     @RabbitListener(queues = {"q.ride-acceptance"})
     @Transactional
-    private void onRideAcceptance(@Payload String acceptedRide) {
+    public void onRideAcceptance(@Payload String acceptedRide) {
         log.info("New accepted ride : {}", acceptedRide);
         try {
             Ride ride = gson.fromJson(acceptedRide, Ride.class);
@@ -47,7 +47,7 @@ public class RidesService {
 
     @RabbitListener(queues = {"q.ride-completion"})
     @Transactional
-    private void onRideCompletion(@Payload String completedRide) {
+    public void onRideCompletion(@Payload String completedRide) {
         log.info("New completed ride : {}", completedRide);
         try {
             CompleteRideResponse ride = gson.fromJson(completedRide, CompleteRideResponse.class);
@@ -64,6 +64,7 @@ public class RidesService {
 
     @Transactional
     public RequestRideResponse requestRide(RequestRide requestRide) {
+        log.info("Request ride : {}", requestRide);
         Ride newRide = new Ride();
         newRide.setStatus(RideStatus.PENDING);
         newRide.setPassengerId(requestRide.getPassengerId());
@@ -71,9 +72,9 @@ public class RidesService {
         newRide.setDropoffLocation(requestRide.getDropoffLocation());
 
         RideEntity rideEntity = rideMapper.toEntity(newRide);
-        newRide.setId(rideEntity.getId());
 
         rideRepository.saveAndFlush(rideEntity);
+        newRide.setId(rideEntity.getId());
         rabbitTemplate.convertAndSend("q.ride-assignment", gson.toJson(newRide));
 
         return new RequestRideResponse(rideEntity.getId(), newRide.getStatus());
@@ -81,6 +82,7 @@ public class RidesService {
 
     @Transactional
     public ChangeRideState changeRideState(Long id, ChangeRideState changeRideState) {
+        log.info("Change state of ride : {}", id);
         RideEntity rideEntity = rideRepository.findById(id)
                 .orElseThrow(() -> new EntryNotFoundException(RIDE_NOT_FOUND, String.valueOf(id)));
 
@@ -97,8 +99,7 @@ public class RidesService {
     public Ride getRide(Long id) {
         RideEntity rideEntity = rideRepository.findById(id)
                 .orElseThrow(() -> new EntryNotFoundException(RIDE_NOT_FOUND, String.valueOf(id)));
-
+        log.info("Get ride : {}", id);
         return rideMapper.toElement(rideEntity);
     }
-
 }

@@ -2,6 +2,9 @@ server:
   port : 6060
 
 spring:
+  mvc:
+    async:
+      request-timeout: 2000
   datasource:
     url: jdbc:postgresql://localhost:5432/driversDB
     username: user1
@@ -15,10 +18,11 @@ spring:
       simple:
         retry:
           enabled: true
-          initial-interval: 3000
-          max-attempts: 10
-          max-interval: 10000
-          multiplier: 1.2
+          initial-interval: 2s
+          max-attempts: 20
+#          max-interval: 3s
+          multiplier: 1.1
+
   jpa:
     properties:
       javax:
@@ -30,8 +34,3 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: false
-
-resilience4j:
-  instances:
-    driversService:
-      timeoutDuration=5s:

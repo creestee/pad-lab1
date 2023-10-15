@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.amqp.rabbit.support.ListenerExecutionFailedException;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,9 +31,9 @@ public class DriversService {
 
     @RabbitListener(queues = {"q.ride-assignment"})
     @Transactional
-    private void driverAssignment(@Payload String rideRequest) throws NotAvailableDriverException {
-        log.info("New ride request : {}", rideRequest);
+    public void driverAssignment(@Payload String rideRequest) throws NotAvailableDriverException {
         try {
+            log.info("New ride request : {}", rideRequest);
             Ride ride = gson.fromJson(rideRequest, Ride.class);
             DriverEntity driverEntity = driverRepository.findFirstByStatus(AvailabilityStatus.ONLINE);
 
@@ -41,18 +42,19 @@ public class DriversService {
                 driverEntity.setStatus(AvailabilityStatus.IN_A_RIDE);
                 driverRepository.saveAndFlush(driverEntity);
                 rabbitTemplate.convertAndSend("q.ride-acceptance", gson.toJson(ride));
+                log.info("Driver-ID {} accepted ride-ID {}", driverEntity.getId(), ride.getId());
             } else {
                 throw new NotAvailableDriverException(NOT_AVAILABLE_DRIVER);
             }
-
-        } catch (Exception e){
+        }
+        catch (ListenerExecutionFailedException e) {
             log.error(e.getMessage());
         }
     }
 
     @RabbitListener(queues = {"q.ride-cancellation"})
     @Transactional
-    private void notifyCancelRide(@Payload String cancelledRide) {
+    public void notifyCancelRide(@Payload String cancelledRide) {
         log.info("New ride cancel : {}", cancelledRide);
         try {
             Ride ride = gson.fromJson(cancelledRide, Ride.class);
@@ -69,6 +71,7 @@ public class DriversService {
 
     @Transactional
     public Availability changeAvailability(Long id, Availability availability) {
+        log.info("Change driver-{} availability : {}", id, availability);
         DriverEntity driverEntity = driverRepository.findById(id)
                 .orElseThrow(() -> new EntryNotFoundException(DRIVER_NOT_FOUND, String.valueOf(id)));
         driverEntity.setStatus(availability.getAvailabilityStatus());
@@ -77,6 +80,7 @@ public class DriversService {
     }
 
     public CompleteRide completeRide(Long id, CompleteRide state) {
+        log.info("Change ride state : {}", state);
         if (state.getRideStatus().equals(RideStatus.COMPLETED)) {
 
             DriverEntity driverEntity = driverRepository.findById(id)

@@ -1,6 +1,6 @@
 package at.lab1.rides.config;
 
-import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.core.*;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -9,12 +9,12 @@ public class RabbitMQConfig {
 
     @Bean
     public Queue createRideAssignmentQueue() {
-        return new Queue("q.ride-assignment");
+        return QueueBuilder.durable("q.ride-assignment").build();
     }
 
     @Bean
     public Queue createRideCancellationQueue() {
-        return new Queue("q.ride-cancellation");
+        return QueueBuilder.durable("q.ride-cancellation").build();
     }
 
 }

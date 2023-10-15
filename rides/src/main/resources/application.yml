@@ -2,6 +2,9 @@ server:
   port : 5050
 
 spring:
+  mvc:
+    async:
+      request-timeout: 2000
   datasource:
     url: jdbc:postgresql://localhost:5433/ridesDB
     username: user2
@@ -11,6 +14,12 @@ spring:
     port: 5672
     username: guest
     password: guest
+    listener:
+      simple:
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+
   jpa:
     properties:
       javax:
@@ -22,8 +31,3 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: false
-
-resilience4j:
-  instances:
-    ridesService:
-      timeoutDuration=5s:
