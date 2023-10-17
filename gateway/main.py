@@ -1,16 +1,18 @@
 import json
+import httpx
+import redis
+import datetime
 
 from fastapi import FastAPI, Depends
-import httpx
 from fastapi.encoders import jsonable_encoder
 from schemas import RequestRide, RequestRideResponse, Ride, ChangeRideState, Availability, CompleteRide
-import redis
 from datetime import timedelta
 
 app = FastAPI()
 
 rides_service = "http://localhost:5050/api/rides"
 drivers_service = "http://localhost:6060/api/drivers"
+service_discovery = "http://localhost:3000"
 
 headers = {"Content-Type": "application/json"}
 
@@ -29,6 +31,13 @@ pool = create_redis()
 
 def get_redis():
     return redis.Redis(connection_pool=pool)
+
+
+@app.get("/service-discovery/{service_name}", status_code=200)
+async def get_service_instances(service_name: str, store=Depends(get_redis)):
+    r = httpx.get(f"{service_discovery}/service/{service_name}")
+    instances = r.json()
+    return instances
 
 
 @app.get("/rides/{ride_id}", response_model=Ride)
@@ -68,3 +77,8 @@ async def change_driver_availability(driver_id: int, availability: Availability)
 async def complete_ride(driver_id: int, state: CompleteRide):
     r = httpx.put(f"{drivers_service}/{driver_id}/ride", json=jsonable_encoder(state), headers=headers)
     return r.json()
+
+
+@app.get("/status")
+async def status_endpoint():
+    return {"gateway": "ALIVE", "timestamp": datetime.datetime.now()}
