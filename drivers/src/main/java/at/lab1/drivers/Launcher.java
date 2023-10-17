@@ -24,7 +24,7 @@ public class Launcher {
     @Scheduled(initialDelay = 3000, fixedRate = 5000)
     public void sendHeartbeat() {
         try {
-            restTemplate.put("http://127.0.0.1:8000/heartbeat", serviceId.getIdentifier(), String.class);
+            restTemplate.put("http://127.0.0.1:3000/heartbeat", serviceId.getIdentifier(), String.class);
             log.info("new heartbeat");
         } catch (Exception ignored) {}
     }

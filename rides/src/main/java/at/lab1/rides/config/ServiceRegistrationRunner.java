@@ -20,7 +20,7 @@ import java.util.Map;
 @Slf4j
 public class ServiceRegistrationRunner implements ApplicationRunner {
 
-    private final static String SERVICE_DISCOVERY_URL = "http://127.0.0.1:8000/register";
+    private final static String SERVICE_DISCOVERY_URL = "http://127.0.0.1:3000/register";
     private final static String SERVICE_NAME = "rides";
     private final static Integer PORT = 5050; // to be fetched from .env
 
