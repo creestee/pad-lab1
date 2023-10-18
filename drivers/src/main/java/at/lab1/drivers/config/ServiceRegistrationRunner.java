@@ -24,8 +24,6 @@ public class ServiceRegistrationRunner implements ApplicationRunner {
     private final static String SERVICE_NAME = "drivers";
     private final static Integer PORT = 6060; // to be fetched from .env
 
-    private final ServiceId serviceId;
-
     @Override
     public void run(ApplicationArguments args) throws Exception {
         try {
@@ -42,11 +40,6 @@ public class ServiceRegistrationRunner implements ApplicationRunner {
             HttpEntity<Map<String, String>> requestEntity = new HttpEntity<>(requestBody, headers);
 
             ResponseEntity<String> response = restTemplate.postForEntity(SERVICE_DISCOVERY_URL, requestEntity, String.class);
-
-            Map<String, String> serviceIdentifier = new HashMap<>();
-            serviceIdentifier.put("service", response.getBody());
-            serviceId.setIdentifier(new HttpEntity<>(serviceIdentifier, headers));
-
         } catch (Exception e) {
             log.error(e.getMessage());
         }

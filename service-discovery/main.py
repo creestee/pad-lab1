@@ -3,9 +3,11 @@ import uuid
 import redis
 import logging
 import datetime
+import httpx
 
 from fastapi import FastAPI, Depends
 from pydantic import BaseModel
+from apscheduler.schedulers.background import BackgroundScheduler
 
 app = FastAPI()
 time_to_expire = 20  # seconds
@@ -38,20 +40,31 @@ def get_redis():
     return redis.Redis(connection_pool=pool)
 
 
+def send_heartbeat():
+    registered_instances = get_redis().keys(f'service:*')
+    for instance in registered_instances:
+        instance_info = json.loads(get_redis().get(instance))
+
+        host, port, service_name = instance_info["host"], instance_info["port"], instance_info["name"]
+        r = httpx.get(f"http://{host}:{port}/api/{service_name}/status")
+
+        if r.status_code == 200:
+            get_redis().expire(f"{instance}", time_to_expire)
+
+
+@app.on_event('startup')
+def init_data():
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(send_heartbeat, 'cron', second='*/5')
+    scheduler.start()
+
+
 @app.post("/register", status_code=201)
 async def register_service(service: Service, store=Depends(get_redis)):
     key = f"service:{service.name}:{uuid.uuid4().hex}"
-    data = {"host": f"{service.host}", "port": f"{service.port}"}
+    data = {"host": f"{service.host}", "port": f"{service.port}", "name": f"{service.name}"}
     store.set(key, json.dumps(data), ex=time_to_expire)
     return key
-
-
-@app.put("/heartbeat", status_code=200)
-async def send_heartbeat(service_heartbeat: Heartbeat, store=Depends(get_redis)):
-    service_identifier = service_heartbeat.service.replace("\"", "")
-
-    if store.exists(f"{service_identifier}"):
-        store.expire(f"{service_identifier}", time_to_expire)
 
 
 @app.get("/status")

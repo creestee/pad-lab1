@@ -1,6 +1,5 @@
 package at.lab1.rides.config;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -16,15 +15,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Component
-@RequiredArgsConstructor
 @Slf4j
 public class ServiceRegistrationRunner implements ApplicationRunner {
 
     private final static String SERVICE_DISCOVERY_URL = "http://127.0.0.1:3000/register";
     private final static String SERVICE_NAME = "rides";
     private final static Integer PORT = 5050; // to be fetched from .env
-
-    private final ServiceId serviceId;
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
@@ -42,10 +38,6 @@ public class ServiceRegistrationRunner implements ApplicationRunner {
             HttpEntity<Map<String, String>> requestEntity = new HttpEntity<>(requestBody, headers);
 
             ResponseEntity<String> response = restTemplate.postForEntity(SERVICE_DISCOVERY_URL, requestEntity, String.class);
-
-            Map<String, String> serviceIdentifier = new HashMap<>();
-            serviceIdentifier.put("service", response.getBody());
-            serviceId.setIdentifier(new HttpEntity<>(serviceIdentifier, headers));
 
         } catch (Exception e) {
             log.error(e.getMessage());
