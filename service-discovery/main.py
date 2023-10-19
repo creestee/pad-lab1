@@ -6,6 +6,7 @@ import datetime
 import httpx
 
 from fastapi import FastAPI, Depends
+from httpx import ConnectError
 from pydantic import BaseModel
 from apscheduler.schedulers.background import BackgroundScheduler
 
@@ -46,10 +47,12 @@ def send_heartbeat():
         instance_info = json.loads(get_redis().get(instance))
 
         host, port, service_name = instance_info["host"], instance_info["port"], instance_info["name"]
-        r = httpx.get(f"http://{host}:{port}/api/{service_name}/status")
-
-        if r.status_code == 200:
-            get_redis().expire(f"{instance}", time_to_expire)
+        try:
+            r = httpx.get(f"http://{host}:{port}/api/{service_name}/status")
+            if r.status_code == 200:
+                get_redis().expire(f"{instance}", time_to_expire)
+        except ConnectError:
+            pass
 
 
 @app.on_event('startup')
