@@ -1,6 +1,7 @@
 package at.lab1.rides.config;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.http.HttpEntity;
@@ -18,9 +19,16 @@ import java.util.Map;
 @Slf4j
 public class ServiceRegistrationRunner implements ApplicationRunner {
 
-    private final static String SERVICE_DISCOVERY_URL = "http://127.0.0.1:3000/register";
     private final static String SERVICE_NAME = "rides";
-    private final static Integer PORT = 5050; // to be fetched from .env
+
+    @Value("${service-discovery.host}")
+    private String serviceDiscoveryHost;
+
+    @Value("${service-discovery.port}")
+    private Integer serviceDiscoveryPort;
+
+    @Value("${server.port}")
+    private Integer port;
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
@@ -33,11 +41,13 @@ public class ServiceRegistrationRunner implements ApplicationRunner {
             Map<String, String> requestBody = new HashMap<>();
             requestBody.put("name", SERVICE_NAME);
             requestBody.put("host", InetAddress.getLocalHost().getHostAddress());
-            requestBody.put("port", String.valueOf(PORT));
+            requestBody.put("port", String.valueOf(port));
 
             HttpEntity<Map<String, String>> requestEntity = new HttpEntity<>(requestBody, headers);
 
-            ResponseEntity<String> response = restTemplate.postForEntity(SERVICE_DISCOVERY_URL, requestEntity, String.class);
+            ResponseEntity<String> response = restTemplate.postForEntity(
+                    String.format("http://%s:%s/register", serviceDiscoveryHost, serviceDiscoveryPort),
+                    requestEntity, String.class);
 
         } catch (Exception e) {
             log.error(e.getMessage());

@@ -1,19 +1,19 @@
 server:
-  port : 5050
+  port : ${RIDES_PORT}
 
 spring:
   mvc:
     async:
-      request-timeout: 2000
+      request-timeout: ${TIMEOUT_MS}
   datasource:
-    url: jdbc:postgresql://localhost:5433/ridesDB
-    username: user2
-    password: password2
+    url: ${DB_RIDES_URL}
+    username: ${DB_RIDES_USER}
+    password: ${DB_RIDES_PASSWORD}
   rabbitmq:
-    host: localhost
-    port: 5672
-    username: guest
-    password: guest
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
+    username: ${RABBITMQ_USER}
+    password: ${RABBITMQ_PASSWORD}
     listener:
       simple:
         default-requeue-rejected: false
@@ -31,3 +31,7 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: false
+
+service-discovery:
+  host: ${SERVICE_DISCOVERY_HOST}
+  port: ${SERVICE_DISCOVERY_PORT}

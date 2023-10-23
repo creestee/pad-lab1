@@ -124,6 +124,9 @@ async def get_ride(ride_id: int, cache=Depends(get_redis)):
             if r.status_code == 408:
                 circuit_breaker.record_failure(service_identifier)
                 raise HTTPException(status_code=500, detail="Request timeout to RIDES service")
+            if r.status_code == 429:
+                circuit_breaker.record_failure(service_identifier)
+                raise HTTPException(status_code=429, detail="Too many requests")
             elif r.status_code == 200:
                 cache.set(f"ride_{ride_id}", json.dumps(r.json()), ex=timedelta(minutes=1))
                 return r.json()
@@ -145,6 +148,9 @@ async def request_ride(requestRide: RequestRide) -> RequestRideResponse | dict:
         if r.status_code == 408:
             circuit_breaker.record_failure(service_identifier)
             raise HTTPException(status_code=500, detail="Request timeout to RIDES service")
+        if r.status_code == 429:
+            circuit_breaker.record_failure(service_identifier)
+            raise HTTPException(status_code=429, detail="Too many requests")
         elif r.status_code == 200:
             return r.json()
 
@@ -167,6 +173,9 @@ async def change_ride_state(ride_id: int, state: ChangeRideState, cache=Depends(
         if r.status_code == 408:
             circuit_breaker.record_failure(service_identifier)
             raise HTTPException(status_code=500, detail="Request timeout to RIDES service")
+        if r.status_code == 429:
+            circuit_breaker.record_failure(service_identifier)
+            raise HTTPException(status_code=429, detail="Too many requests")
         elif r.status_code == 200:
             if (cache.get(f"ride_{ride_id}")) is not None:
                 cache.delete(f"ride_{ride_id}")
@@ -191,6 +200,9 @@ async def change_driver_availability(driver_id: int, availability: Availability)
         if r.status_code == 408:
             circuit_breaker.record_failure(service_identifier)
             raise HTTPException(status_code=500, detail="Request timeout to DRIVERS service")
+        if r.status_code == 429:
+            circuit_breaker.record_failure(service_identifier)
+            raise HTTPException(status_code=429, detail="Too many requests")
         elif r.status_code == 200:
             return r.json()
 
@@ -213,6 +225,9 @@ async def complete_ride(driver_id: int, state: CompleteRide):
         if r.status_code == 408:
             circuit_breaker.record_failure(service_identifier)
             raise HTTPException(status_code=500, detail="Request timeout to DRIVERS service")
+        if r.status_code == 429:
+            circuit_breaker.record_failure(service_identifier)
+            raise HTTPException(status_code=429, detail="Too many requests")
         elif r.status_code == 200:
             return r.json()
 

@@ -8,6 +8,7 @@ import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
@@ -28,11 +29,11 @@ public class DriversController {
     @PostConstruct
     public void setupBucket() {
         this.bucket = Bucket.builder()
-                .addLimit(limit -> limit.capacity(20).refillGreedy(20, Duration.ofMinutes(1)))
+                .addLimit(limit -> limit.capacity(1).refillGreedy(1, Duration.ofMinutes(1)))
                 .build();
     }
 
-    @PutMapping(path = "/{id}/availability")
+    @PutMapping(path = "/{id}/availability", produces = MediaType.APPLICATION_JSON_VALUE)
     public Callable<ResponseEntity<?>> changeAvailability(@PathVariable Long id, @RequestBody Availability availability) {
         if (bucket.tryConsume(1)) {
             return () -> {
@@ -49,7 +50,7 @@ public class DriversController {
         }
     }
 
-    @PutMapping(path = "/{id}/ride")
+    @PutMapping(path = "/{id}/ride", produces = MediaType.APPLICATION_JSON_VALUE)
     public Callable<ResponseEntity<?>> completeRide(@PathVariable Long id, @RequestBody CompleteRide state) {
         if (bucket.tryConsume(1)) {
             return () -> {

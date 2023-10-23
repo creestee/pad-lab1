@@ -48,7 +48,7 @@ public class DriversService {
             }
         }
         catch (ListenerExecutionFailedException e) {
-            log.error(e.getMessage());
+            log.error("Every driver is busy!!!");
         }
     }
 
@@ -90,7 +90,7 @@ public class DriversService {
             driverRepository.saveAndFlush(driverEntity);
 
             CompleteRide newRideState = new CompleteRide(state.getRideId(), RideStatus.COMPLETED);
-            rabbitTemplate.convertAndSend("q.ride-completion", newRideState);
+            rabbitTemplate.convertAndSend("q.ride-completion", gson.toJson(newRideState));
             return newRideState;
         }
         return state;

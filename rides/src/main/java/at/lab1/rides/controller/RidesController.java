@@ -1,12 +1,14 @@
 package at.lab1.rides.controller;
 
 import at.lab1.rides.dto.*;
+import at.lab1.rides.exception.EntryNotFoundException;
 import at.lab1.rides.service.RidesService;
 import io.github.bucket4j.Bucket;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
@@ -31,12 +33,14 @@ public class RidesController {
                 .build();
     }
 
-    @GetMapping(path = "/{id}")
+    @GetMapping(path = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     public Callable<ResponseEntity<?>> getRide(@PathVariable Long id) {
         if (bucket.tryConsume(1)) {
             return () -> {
                 try {
                     return ResponseEntity.ok(ridesService.getRide(id));
+                } catch (EntryNotFoundException ex) {
+                    return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Ride not found with this id");
                 } catch (AsyncRequestTimeoutException ex) {
                     log.error("Request timeout on ID : {}", id);
                     return ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT).build();
@@ -48,7 +52,7 @@ public class RidesController {
         }
     }
 
-    @PostMapping
+    @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public Callable<ResponseEntity<?>> requestRide(@RequestBody RequestRide ride) {
         if (bucket.tryConsume(1)) {
             return () -> {
@@ -65,12 +69,14 @@ public class RidesController {
         }
     }
 
-    @PutMapping(path = "/{id}/state")
+    @PutMapping(path = "/{id}/state", produces = MediaType.APPLICATION_JSON_VALUE)
     public Callable<ResponseEntity<?>> changeRideState(@PathVariable Long id, @RequestBody ChangeRideState state) {
         if (bucket.tryConsume(1)) {
             return () -> {
                 try {
                     return ResponseEntity.ok(ridesService.changeRideState(id, state));
+                } catch (EntryNotFoundException ex) {
+                    return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Ride not found with this id");
                 } catch (AsyncRequestTimeoutException ex) {
                     log.error("Request timeout on change_ride_state with id : {}", id);
                     return ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT).build();
