@@ -17,4 +17,13 @@ public class RabbitMQConfig {
         return QueueBuilder.durable("q.ride-cancellation").build();
     }
 
+    @Bean
+    public Queue createRideAcceptanceQueue() {
+        return QueueBuilder.durable("q.ride-acceptance").build();
+    }
+
+    @Bean
+    public Queue createRideCompletionQueue() {
+        return QueueBuilder.durable("q.ride-completion").build();
+    }
 }

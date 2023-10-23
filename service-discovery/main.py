@@ -1,5 +1,8 @@
 import json
+import os
 import uuid
+from logging.config import dictConfig
+
 import redis
 import logging
 import datetime
@@ -12,7 +15,33 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 app = FastAPI()
 time_to_expire = 20  # seconds
-logger = logging.getLogger(__name__)
+
+
+log_config = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "default": {
+            "()": "uvicorn.logging.DefaultFormatter",
+            "fmt": "%(levelprefix)s %(asctime)s | %(message)s",
+            "datefmt": "%H:%M:%S",
+
+        },
+    },
+    "handlers": {
+        "default": {
+            "formatter": "default",
+            "class": "logging.StreamHandler",
+            "stream": "ext://sys.stderr",
+        },
+    },
+    "loggers": {
+        "foo-logger": {"handlers": ["default"], "level": "DEBUG"},
+    },
+}
+
+dictConfig(log_config)
+logger = logging.getLogger('foo-logger')
 
 
 class Service(BaseModel):
@@ -25,10 +54,14 @@ class Heartbeat(BaseModel):
     service: str
 
 
+REDIS_HOST = os.getenv('REDIS_HOST') or "localhost"
+REDIS_PORT = os.getenv('REDIS_PORT') or 6379
+
+
 def create_redis():
     return redis.ConnectionPool(
-        host='localhost',
-        port=6379,
+        host=REDIS_HOST,
+        port=REDIS_PORT,
         db=0,
         decode_responses=True
     )
@@ -65,7 +98,8 @@ def init_data():
 @app.post("/register", status_code=201)
 async def register_service(service: Service, store=Depends(get_redis)):
     key = f"service:{service.name}:{uuid.uuid4().hex}"
-    data = {"host": f"{service.host}", "port": f"{service.port}", "name": f"{service.name}"}
+    data = {"host": service.host, "port": service.port, "name": service.name}
+    logger.info(f"A new [{service.name}] service has been registered --- {data}")
     store.set(key, json.dumps(data), ex=time_to_expire)
     return key
 

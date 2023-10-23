@@ -1,4 +1,5 @@
 import json
+import os
 import time
 
 import httpx
@@ -80,10 +81,14 @@ class CircuitBreaker:
 circuit_breaker = CircuitBreaker()
 
 
+REDIS_HOST = os.getenv('REDIS_HOST') or "localhost"
+REDIS_PORT = os.getenv('REDIS_PORT') or 6379
+
+
 def create_redis():
     return redis.ConnectionPool(
-        host='localhost',
-        port=6379,
+        host=REDIS_HOST,
+        port=REDIS_PORT,
         db=0,
         decode_responses=True
     )

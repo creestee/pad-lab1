@@ -9,6 +9,16 @@ import org.springframework.context.annotation.Configuration;
 public class RabbitMQConfig {
 
     @Bean
+    public Queue createRideAssignmentQueue() {
+        return QueueBuilder.durable("q.ride-assignment").build();
+    }
+
+    @Bean
+    public Queue createRideCancellationQueue() {
+        return QueueBuilder.durable("q.ride-cancellation").build();
+    }
+
+    @Bean
     @Qualifier("ride-acceptance-queue")
     public Queue createRideAcceptanceQueue() {
         return QueueBuilder.durable("q.ride-acceptance")

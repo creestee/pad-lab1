@@ -1,9 +1,11 @@
 package at.lab1.rides.config;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.boot.autoconfigure.web.ServerProperties;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -16,19 +18,18 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Component
+@RequiredArgsConstructor
 @Slf4j
 public class ServiceRegistrationRunner implements ApplicationRunner {
 
     private final static String SERVICE_NAME = "rides";
+    private final ServerProperties serverProperties;
 
     @Value("${service-discovery.host}")
     private String serviceDiscoveryHost;
 
     @Value("${service-discovery.port}")
     private Integer serviceDiscoveryPort;
-
-    @Value("${server.port}")
-    private Integer port;
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
@@ -41,7 +42,7 @@ public class ServiceRegistrationRunner implements ApplicationRunner {
             Map<String, String> requestBody = new HashMap<>();
             requestBody.put("name", SERVICE_NAME);
             requestBody.put("host", InetAddress.getLocalHost().getHostAddress());
-            requestBody.put("port", String.valueOf(port));
+            requestBody.put("port", String.valueOf(serverProperties.getPort()));
 
             HttpEntity<Map<String, String>> requestEntity = new HttpEntity<>(requestBody, headers);
 

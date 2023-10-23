@@ -1,6 +1,5 @@
 server:
-  port : ${RIDES_PORT}
-
+  port: ${SERVICE_PORT}
 spring:
   mvc:
     async:
