@@ -10,7 +10,7 @@ import logging
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.encoders import jsonable_encoder
 from httpx import ConnectError
-from schemas import RequestRide, RequestRideResponse, Ride, ChangeRideState, Availability, CompleteRide
+from schemas import RequestRide, RequestRideResponse, ChangeRideState, Availability, CompleteRide
 from datetime import timedelta
 from logging.config import dictConfig
 
@@ -126,13 +126,10 @@ async def get_ride(ride_id: int, cache=Depends(get_redis)):
 
             r = httpx.get(f"http://{host}:{port}/api/rides/{ride_id}")
 
-            if r.status_code == 408:
+            if r.status_code != 200:
                 circuit_breaker.record_failure(service_identifier)
-                raise HTTPException(status_code=500, detail="Request timeout to RIDES service")
-            if r.status_code == 429:
-                circuit_breaker.record_failure(service_identifier)
-                raise HTTPException(status_code=429, detail="Too many requests")
-            elif r.status_code == 200:
+                raise HTTPException(status_code=r.status_code, detail=r.text)
+            else:
                 cache.set(f"ride_{ride_id}", json.dumps(r.json()), ex=timedelta(minutes=1))
                 return r.json()
 
@@ -150,13 +147,10 @@ async def request_ride(requestRide: RequestRide) -> RequestRideResponse | dict:
 
         r = httpx.post(f"http://{host}:{port}/api/rides", json=jsonable_encoder(requestRide), headers=HEADERS)
 
-        if r.status_code == 408:
+        if r.status_code != 200:
             circuit_breaker.record_failure(service_identifier)
-            raise HTTPException(status_code=500, detail="Request timeout to RIDES service")
-        if r.status_code == 429:
-            circuit_breaker.record_failure(service_identifier)
-            raise HTTPException(status_code=429, detail="Too many requests")
-        elif r.status_code == 200:
+            raise HTTPException(status_code=r.status_code, detail=r.text)
+        else:
             return r.json()
 
     except ConnectError:
@@ -175,13 +169,10 @@ async def change_ride_state(ride_id: int, state: ChangeRideState, cache=Depends(
         r = httpx.put(f"http://{host}:{port}/api/rides/{ride_id}/state",
                       json=jsonable_encoder(state), headers=HEADERS)
 
-        if r.status_code == 408:
+        if r.status_code != 200:
             circuit_breaker.record_failure(service_identifier)
-            raise HTTPException(status_code=500, detail="Request timeout to RIDES service")
-        if r.status_code == 429:
-            circuit_breaker.record_failure(service_identifier)
-            raise HTTPException(status_code=429, detail="Too many requests")
-        elif r.status_code == 200:
+            raise HTTPException(status_code=r.status_code, detail=r.text)
+        else:
             if (cache.get(f"ride_{ride_id}")) is not None:
                 cache.delete(f"ride_{ride_id}")
             return r.json()
@@ -202,13 +193,10 @@ async def change_driver_availability(driver_id: int, availability: Availability)
         r = httpx.put(f"http://{host}:{port}/api/drivers/{driver_id}/availability",
                       json=jsonable_encoder(availability), headers=HEADERS)
 
-        if r.status_code == 408:
+        if r.status_code != 200:
             circuit_breaker.record_failure(service_identifier)
-            raise HTTPException(status_code=500, detail="Request timeout to DRIVERS service")
-        if r.status_code == 429:
-            circuit_breaker.record_failure(service_identifier)
-            raise HTTPException(status_code=429, detail="Too many requests")
-        elif r.status_code == 200:
+            raise HTTPException(status_code=r.status_code, detail=r.text)
+        else:
             return r.json()
 
     except ConnectError:
@@ -227,13 +215,10 @@ async def complete_ride(driver_id: int, state: CompleteRide):
         r = httpx.put(f"http://{host}:{port}/api/drivers/{driver_id}/ride",
                       json=jsonable_encoder(state), headers=HEADERS)
 
-        if r.status_code == 408:
+        if r.status_code != 200:
             circuit_breaker.record_failure(service_identifier)
-            raise HTTPException(status_code=500, detail="Request timeout to DRIVERS service")
-        if r.status_code == 429:
-            circuit_breaker.record_failure(service_identifier)
-            raise HTTPException(status_code=429, detail="Too many requests")
-        elif r.status_code == 200:
+            raise HTTPException(status_code=r.status_code, detail=r.text)
+        else:
             return r.json()
 
     except ConnectError:

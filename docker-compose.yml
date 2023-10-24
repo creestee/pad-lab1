@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   gateway:
-    image: gateway
+    image: creesteee/gateway:latest
     container_name: gateway
     restart: always
     ports:
@@ -12,9 +12,10 @@ services:
       - REDIS_PORT=6379
     depends_on:
       - redis-cache
+      - service-discovery
 
   service-discovery:
-    image: service-discovery
+    image: creesteee/service-discovery:latest
     container_name: service-discovery
     restart: always
     ports:
@@ -26,7 +27,7 @@ services:
       - redis-cache
 
   rides:
-    image: rides-service:latest
+    image: creesteee/rides-service:latest
 
     deploy:
       mode: replicated
@@ -34,7 +35,7 @@ services:
     links:
       - postgres2
     ports:
-      - "8080-8082:8080"
+      - "8080-8090:8080"
     environment:
       - TIMEOUT_MS=5000
       - DB_RIDES_URL=jdbc:postgresql://postgres2/ridesDB
@@ -49,12 +50,13 @@ services:
       - SERVICE_PORT=8080
 
     depends_on:
+      - redis-cache
       - service-discovery
       - postgres2
       - rabbitmq
 
   drivers:
-    image: drivers-service:latest
+    image: creesteee/drivers-service:latest
 
     deploy:
       mode: replicated
@@ -62,7 +64,7 @@ services:
     links:
       - postgres1
     ports:
-      - "7070-7072:7070"
+      - "7070-7080:7070"
     environment:
       - TIMEOUT_MS=5000
       - DB_RIDES_URL=jdbc:postgresql://postgres1/driversDB
@@ -77,6 +79,7 @@ services:
       - SERVICE_PORT=7070
 
     depends_on:
+      - redis-cache
       - service-discovery
       - postgres1
       - rabbitmq
