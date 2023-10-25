@@ -2,6 +2,8 @@ package at.lab1.drivers.controller;
 
 import at.lab1.drivers.dto.Availability;
 import at.lab1.drivers.dto.CompleteRide;
+import at.lab1.drivers.dto.NewDriver;
+import at.lab1.drivers.exception.EntryNotFoundException;
 import at.lab1.drivers.service.DriversService;
 import io.github.bucket4j.Bucket;
 import jakarta.annotation.PostConstruct;
@@ -29,7 +31,7 @@ public class DriversController {
     @PostConstruct
     public void setupBucket() {
         this.bucket = Bucket.builder()
-                .addLimit(limit -> limit.capacity(1).refillGreedy(1, Duration.ofMinutes(1)))
+                .addLimit(limit -> limit.capacity(20).refillGreedy(20, Duration.ofMinutes(1)))
                 .build();
     }
 
@@ -41,6 +43,42 @@ public class DriversController {
                     return ResponseEntity.ok(driversService.changeAvailability(id, availability));
                 } catch (AsyncRequestTimeoutException ex) {
                     log.error("Request timeout on change_driver_availability with driver_id : {}", id);
+                    return ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT).build();
+                }
+            };
+        } else {
+            return () -> ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .body("Too Many Requests - Please try again later.");
+        }
+    }
+
+    @GetMapping(path="/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public Callable<ResponseEntity<?>> getDriver(@PathVariable Long id) {
+        if (bucket.tryConsume(1)) {
+            return () -> {
+                try {
+                    return ResponseEntity.ok(driversService.getDriver(id));
+                } catch (EntryNotFoundException ex) {
+                    return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Driver not found with this id");
+                } catch (AsyncRequestTimeoutException ex) {
+                    log.error("Request timeout on driver with ID : {}", id);
+                    return ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT).build();
+                }
+            };
+        } else {
+            return () -> ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .body("Too Many Requests - Please try again later.");
+        }
+    }
+
+    @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+    public Callable<ResponseEntity<?>> createDriver(@RequestBody NewDriver newDriver) {
+        if (bucket.tryConsume(1)) {
+            return () -> {
+                try {
+                    return ResponseEntity.ok(driversService.createDriver(newDriver));
+                } catch (AsyncRequestTimeoutException ex) {
+                    log.error("Request timeout on create driver : {}", newDriver);
                     return ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT).build();
                 }
             };

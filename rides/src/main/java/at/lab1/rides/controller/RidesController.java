@@ -42,7 +42,43 @@ public class RidesController {
                 } catch (EntryNotFoundException ex) {
                     return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Ride not found with this id");
                 } catch (AsyncRequestTimeoutException ex) {
-                    log.error("Request timeout on ID : {}", id);
+                    log.error("Request timeout on ride with ID : {}", id);
+                    return ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT).build();
+                }
+            };
+        } else {
+            return () -> ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .body("Too Many Requests - Please try again later.");
+        }
+    }
+
+    @GetMapping(path = "/passengers/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public Callable<ResponseEntity<?>> getPassenger(@PathVariable Long id) {
+        if (bucket.tryConsume(1)) {
+            return () -> {
+                try {
+                    return ResponseEntity.ok(ridesService.getPassenger(id));
+                } catch (EntryNotFoundException ex) {
+                    return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Passenger not found with this id");
+                } catch (AsyncRequestTimeoutException ex) {
+                    log.error("Request timeout on passenger with ID : {}", id);
+                    return ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT).build();
+                }
+            };
+        } else {
+            return () -> ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .body("Too Many Requests - Please try again later.");
+        }
+    }
+
+    @PostMapping(path = "/passengers", produces = MediaType.APPLICATION_JSON_VALUE)
+    public Callable<ResponseEntity<?>> createPassenger(@RequestBody NewPassenger newPassenger) {
+        if (bucket.tryConsume(1)) {
+            return () -> {
+                try {
+                    return ResponseEntity.ok(ridesService.createPassenger(newPassenger));
+                } catch (AsyncRequestTimeoutException ex) {
+                    log.error("Request timeout on create passenger : {}", newPassenger);
                     return ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT).build();
                 }
             };

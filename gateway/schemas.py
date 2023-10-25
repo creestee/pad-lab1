@@ -33,3 +33,26 @@ class Availability(BaseModel):
 class CompleteRide(BaseModel):
     rideId: int
     rideStatus: str
+
+
+class NewPassenger(BaseModel):
+    firstName: str
+    lastName: str
+
+
+class NewDriver(BaseModel):
+    firstName: str
+    lastName: str
+
+
+class Passenger(BaseModel):
+    id: int
+    firstName: str
+    lastName: str
+
+
+class Driver(BaseModel):
+    id: int
+    firstName: str
+    lastName: str
+    availabilityStatus: str

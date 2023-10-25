@@ -7,9 +7,9 @@ spring:
     async:
       request-timeout: ${TIMEOUT_MS}
   datasource:
-    url: ${DB_RIDES_URL}
-    username: ${DB_RIDES_USER}
-    password: ${DB_RIDES_PASSWORD}
+    url: ${DB_DRIVERS_URL}
+    username: ${DB_DRIVERS_USER}
+    password: ${DB_DRIVERS_PASSWORD}
 
   rabbitmq:
     host: ${RABBITMQ_HOST}

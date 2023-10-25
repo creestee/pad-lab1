@@ -52,6 +52,38 @@ public class DriversService {
         }
     }
 
+    @Transactional
+    public Driver createDriver(NewDriver newDriver) {
+        log.info("Creating new driver : {}", newDriver);
+        Driver driver = new Driver();
+        driver.setLastName(newDriver.getLastName());
+        driver.setFirstName(newDriver.getFirstName());
+        driver.setAvailabilityStatus(AvailabilityStatus.ONLINE);
+
+        DriverEntity driverEntity = new DriverEntity();
+        driverEntity.setFirstName(driver.getFirstName());
+        driverEntity.setLastName(driver.getLastName());
+        driverEntity.setStatus(driver.getAvailabilityStatus());
+
+        driverRepository.saveAndFlush(driverEntity);
+
+        driver.setId(driverEntity.getId());
+
+        return driver;
+    }
+
+    public Driver getDriver(Long id) {
+        DriverEntity driverEntity = driverRepository.findById(id)
+                .orElseThrow(() -> new EntryNotFoundException(DRIVER_NOT_FOUND, String.valueOf(id)));
+        log.info("Get driver : {}", id);
+        Driver driver = new Driver();
+        driver.setId(driverEntity.getId());
+        driver.setFirstName(driverEntity.getFirstName());
+        driver.setLastName(driverEntity.getLastName());
+        driver.setAvailabilityStatus(driverEntity.getStatus());
+        return driver;
+    }
+
     @RabbitListener(queues = {"q.ride-cancellation"})
     @Transactional
     public void notifyCancelRide(@Payload String cancelledRide) {

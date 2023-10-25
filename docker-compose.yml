@@ -29,15 +29,15 @@ services:
   rides:
     image: creesteee/rides-service:latest
 
-    deploy:
-      mode: replicated
-      replicas: 3
+#    deploy:
+#      mode: replicated
+#      replicas: 3
     links:
       - postgres2
     ports:
       - "8080-8090:8080"
     environment:
-      - TIMEOUT_MS=5000
+      - TIMEOUT_MS=50
       - DB_RIDES_URL=jdbc:postgresql://postgres2/ridesDB
       - DB_RIDES_USER=user2
       - DB_RIDES_PASSWORD=password2
@@ -58,9 +58,9 @@ services:
   drivers:
     image: creesteee/drivers-service:latest
 
-    deploy:
-      mode: replicated
-      replicas: 2
+#    deploy:
+#      mode: replicated
+#      replicas: 2
     links:
       - postgres1
     ports:

@@ -4,7 +4,9 @@ import at.lab1.rides.dto.*;
 import at.lab1.rides.dto.enums.RideStatus;
 import at.lab1.rides.exception.EntryNotFoundException;
 import at.lab1.rides.mapper.RideMapper;
+import at.lab1.rides.persistence.entity.PassengerEntity;
 import at.lab1.rides.persistence.entity.RideEntity;
+import at.lab1.rides.persistence.repository.PassengerRepository;
 import at.lab1.rides.persistence.repository.RideRepository;
 import com.google.gson.Gson;
 import lombok.RequiredArgsConstructor;
@@ -21,10 +23,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class RidesService {
 
     private static final String RIDE_NOT_FOUND = "Ride not found";
+    private static final String PASSENGER_NOT_FOUND = "Passenger not found";
 
     private final Gson gson;
     private final RabbitTemplate rabbitTemplate;
     private final RideRepository rideRepository;
+    private final PassengerRepository passengerRepository;
     private final RideMapper rideMapper;
 
     @RabbitListener(queues = {"q.ride-acceptance"})
@@ -78,6 +82,35 @@ public class RidesService {
         rabbitTemplate.convertAndSend("q.ride-assignment", gson.toJson(newRide));
 
         return new RequestRideResponse(rideEntity.getId(), newRide.getStatus());
+    }
+
+    @Transactional
+    public Passenger createPassenger(NewPassenger newPassenger) {
+        log.info("Creating new passenger : {}", newPassenger);
+        Passenger passenger = new Passenger();
+        passenger.setLastName(newPassenger.getLastName());
+        passenger.setFirstName(newPassenger.getFirstName());
+
+        PassengerEntity passengerEntity = new PassengerEntity();
+        passengerEntity.setFirstName(passenger.getFirstName());
+        passengerEntity.setLastName(passenger.getLastName());
+
+        passengerRepository.saveAndFlush(passengerEntity);
+
+        passenger.setId(passengerEntity.getId());
+
+        return passenger;
+    }
+
+    public Passenger getPassenger(Long id) {
+        PassengerEntity passengerEntity = passengerRepository.findById(id)
+                .orElseThrow(() -> new EntryNotFoundException(PASSENGER_NOT_FOUND, String.valueOf(id)));
+        log.info("Get passenger : {}", id);
+        Passenger passenger = new Passenger();
+        passenger.setId(passengerEntity.getId());
+        passenger.setFirstName(passengerEntity.getFirstName());
+        passenger.setLastName(passengerEntity.getLastName());
+        return passenger;
     }
 
     @Transactional
