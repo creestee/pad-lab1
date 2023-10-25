@@ -1,5 +1,169 @@
 # Ride-Sharing Platform (Uber clone)
 
+## How to run it?
+
+1. Clone the repository:
+    ```
+    https://github.com/creestee/pad-lab1
+    ```
+2. Pull the images from dockerhub:
+    ```
+    docker image pull creesteee/rides-service
+   docker image pull creesteee/drivers-service
+   docker image pull creesteee/gateway
+   docker image pull creesteee/service-discovery
+    ```
+3. Run the docker compose in root directory of project:
+    ```
+   docker-compose up -d
+   ```
+4. Use postman or whatever HTTP client you like to test the below endpoints. Gateway URL is `http://localhost:4000`
+
+### Endpoints
+
+<details>
+<summary>Press to see the endpoints</summary>
+
+1. Create new ride (`/rides`) :
+    - Request body (POST)
+   ```json
+   { 
+      "passengerId": 1,
+      "pickupLocation": "Chisinau",
+      "dropoffLocation": "Kiev"
+   }
+   ```
+    - Response
+   ```json
+   {
+       "rideId": 1,
+       "status": "IN_PROGRESS"
+   }
+   ```
+
+2. Fetch ride (`/rides/{ride_id}`) :
+    - Request (GET)
+    - Response
+   ```json
+   {
+       "id": 1,
+       "passengerId": 1,
+       "driverId": 4,
+       "pickupLocation": "Chisinau",
+       "dropoffLocation": "Kiev",
+       "status": "IN_PROGRESS"
+   }
+   ```
+
+3. Create new passenger (`/passenger`) :
+    - Request body (POST)
+   ```json
+   { 
+      "firstName": "John",
+      "lastName": "Cena"
+   }
+   ```
+    - Response
+   ```json
+   { 
+      "id": 1,
+      "firstName": "John",
+      "lastName": "Cena"
+   }
+   ```
+
+4. Create new driver (`/drivers`) :
+    - Request body (POST)
+   ```json
+   { 
+      "firstName": "John",
+      "lastName": "Cena"
+   }
+   ```
+    - Response
+   ```json
+   { 
+      "id": 1,
+      "firstName": "John",
+      "lastName": "Cena",
+      "availabilityStatus": "ONLINE"
+   }
+   ```
+
+5. Fetch passenger (`/passenger/{passenger_id}`) :
+    - Request (GET)
+    - Response
+   ```json
+   {
+       "id": 1,
+       "firstName": "Andrei",
+       "lastName": "Vasile"
+   }
+   ```
+
+6. Fetch driver (`/drivers/{driver_id}`) :
+    - Request (GET)
+    - Response
+   ```json
+   {
+       "id": 1,
+       "firstName": "Andrei",
+       "lastName": "Vasile",
+       "availabilityStatus": "ONLINE"
+   }
+   ```
+
+7. Change ride state (`/rides/{ride_id}/state`) :
+    - Request body (PUT)
+    - PENDING,
+      CANCELED,
+      IN_PROGRESS,
+      COMPLETED
+   ```json
+   { 
+      "rideStatus": "CANCELED"
+   }
+   ```
+    - Response
+   ```json
+   { 
+      "rideStatus": "CANCELED"
+   }
+   ```
+
+8. Change driver availability (`/drivers/{driver_id}/availability`) :
+    - Request body (PUT)
+    - OFFLINE,
+      ONLINE,
+      IN_A_RIDE
+   ```json
+   { 
+      "availabilityStatus": "OFFLINE"
+   }
+   ```
+    - Response
+   ```json
+   { 
+      "availabilityStatus": "OFFLINE"
+   }
+   ```
+
+9. Complete ride (`/drivers/{driver_id}/ride`) :
+    - Request body (PUT)
+   ```json
+   { 
+      "rideStatus": "COMPLETED"
+   }
+   ```
+    - Response
+   ```json
+   { 
+      "rideStatus": "COMPLETED"
+   }
+   ```
+
+</details>
+
 ## Application Suitability:
 
 Implementation through distributed systems of a Ride-Sharing Platform is necessary, because by adopting a monolithic approach there is a possibility to ran into several operational issues that microservices solve :
