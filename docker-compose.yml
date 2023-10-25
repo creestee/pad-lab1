@@ -68,9 +68,9 @@ services:
       - "7070-7080:7070"
     environment:
       - TIMEOUT_MS=5000
-      - DB_RIDES_URL=jdbc:postgresql://postgres1/driversDB
-      - DB_RIDES_USER=user1
-      - DB_RIDES_PASSWORD=password1
+      - DB_DRIVERS_URL=jdbc:postgresql://postgres1/driversDB
+      - DB_DRIVERS_USER=user1
+      - DB_DRIVERS_PASSWORD=password1
       - RABBITMQ_HOST=rabbitmq
       - RABBITMQ_PORT=5672
       - RABBITMQ_USER=guest
