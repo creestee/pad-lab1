@@ -50,7 +50,7 @@ logger = logging.getLogger('foo-logger')
 
 app = FastAPI()
 
-REQUEST_TIMEOUT = 0.01
+REQUEST_TIMEOUT = os.getenv('REQUEST_TIMEOUT') or 1
 
 
 @app.middleware('http')
