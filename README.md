@@ -1,5 +1,9 @@
 # Ride-Sharing Platform (Uber clone)
 
+## Architecture
+
+![](diagrams/updated-diagram.svg)
+
 ## How to run it?
 
 1. Clone the repository:
@@ -188,8 +192,6 @@ While Uber started expanding worldwide this kind of framework introduced various
 To avoid such problems Uber decided to break its monolithic architecture into multiple codebases to form a microservice architecture.
 
 ## Service Boundaries
-
-![](diagrams/architecture.png)
 
 - **Ride Request Service**
     - Accepting and processing ride requests from passengers.
