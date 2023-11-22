@@ -51,6 +51,8 @@ logger = logging.getLogger('foo-logger')
 app = FastAPI()
 
 REQUEST_TIMEOUT = os.getenv('REQUEST_TIMEOUT') or 1
+MAX_FAILURES = os.getenv('MAX_FAILURES') or 3
+MAX_REROUTES = os.getenv('MAX_REROUTES') or 4
 
 
 @app.middleware('http')
@@ -62,7 +64,7 @@ async def timeout_middleware(request, call_next):
 
 
 class CircuitBreaker:
-    def __init__(self, max_failures=3, timeout=30):
+    def __init__(self, max_failures=MAX_FAILURES, timeout=30):
         self.max_failures = max_failures
         self.timeout = timeout * 3.5
         self.host_failures = {}
@@ -128,229 +130,329 @@ def get_instance_after_round_robin(service_name: str):
 
 @app.get("/rides/{ride_id}")
 async def get_ride(ride_id: int, cache=Depends(get_redis)):
-    host, port, service_identifier = get_instance_after_round_robin("rides")
-
     if (cached_ride := cache.get(f"ride_{ride_id}")) is not None:
         return json.loads(cached_ride)
     else:
-        try:
+        reroute_attempt = 0
+
+        while reroute_attempt < MAX_REROUTES:
+            host, port, service_identifier = get_instance_after_round_robin("rides")
+
             if circuit_breaker.is_open(service_identifier):
                 raise HTTPException(status_code=500, detail="Service failed too many times, please wait")
 
-            r = httpx.get(f"http://{host}:{port}/api/rides/{ride_id}")
+            try:
+                r = httpx.get(f"http://{host}:{port}/api/rides/{ride_id}")
 
-            if r.status_code == 500 or r.status_code == 408:
+                if r.status_code == 500 or r.status_code == 408:
+                    circuit_breaker.record_failure(service_identifier)
+                    reroute_attempt += 1
+                    logger.error('Call to service [rides] failed. Rerouting...')
+                    continue
+                elif r.status_code == 200:
+                    cache.set(f"ride_{ride_id}", json.dumps(r.json()), ex=timedelta(minutes=1))
+                    return r.json()
+                else:
+                    circuit_breaker.record_failure(service_identifier)
+                    reroute_attempt += 1
+                    logger.error('Call to service [rides] failed. Rerouting...')
+
+            except ConnectError:
                 circuit_breaker.record_failure(service_identifier)
-                raise HTTPException(status_code=r.status_code, detail=r.text)
-            elif r.status_code == 200:
-                cache.set(f"ride_{ride_id}", json.dumps(r.json()), ex=timedelta(minutes=1))
-                return r.json()
-            else:
-                raise HTTPException(status_code=r.status_code, detail=r.text)
+                reroute_attempt += 1
+                logger.error('Call to service [rides] failed. Rerouting...')
 
-        except ConnectError:
-            circuit_breaker.record_failure(service_identifier)
-            raise HTTPException(status_code=500, detail="Request timeout to RIDES service")
+        raise HTTPException(status_code=500, detail="Maximum reroutes has been reached. Something is broken with ["
+                                                    "RIDES] service")
 
 
 @app.get("/passengers/{passenger_id}")
 async def get_passenger(passenger_id: int, cache=Depends(get_redis)):
-    host, port, service_identifier = get_instance_after_round_robin("rides")
+    reroute_attempt = 0
 
     if (cached_passenger := cache.get(f"passenger_{passenger_id}")) is not None:
         return json.loads(cached_passenger)
     else:
+        while reroute_attempt < MAX_REROUTES:
+            host, port, service_identifier = get_instance_after_round_robin("passengers")
+
+            if (cached_passenger := cache.get(f"passenger_{passenger_id}")) is not None:
+                return json.loads(cached_passenger)
+            else:
+                try:
+                    if circuit_breaker.is_open(service_identifier):
+                        raise HTTPException(status_code=500, detail="Service failed too many times, please wait")
+
+                    r = httpx.get(f"http://{host}:{port}/api/passengers/{passenger_id}")
+
+                    if r.status_code == 500 or r.status_code == 408:
+                        circuit_breaker.record_failure(service_identifier)
+                        reroute_attempt += 1
+                        logger.error('Call to service [RIDES] failed. Rerouting...')
+                        continue
+                    elif r.status_code == 200:
+                        cache.set(f"passenger_{passenger_id}", json.dumps(r.json()), ex=timedelta(minutes=1))
+                        return r.json()
+                    else:
+                        circuit_breaker.record_failure(service_identifier)
+                        reroute_attempt += 1
+                        logger.error('Call to service [RIDES] failed. Rerouting...')
+
+                except ConnectError:
+                    circuit_breaker.record_failure(service_identifier)
+                    reroute_attempt += 1
+                    logger.error('Call to service [RIDES] failed. Rerouting...')
+
+        raise HTTPException(status_code=500, detail="Maximum reroutes has been reached. Something is broken with ["
+                                                    "RIDES] service")
+
+
+@app.post("/passengers")
+async def create_passenger(newPassenger: NewPassenger) -> Passenger | dict:
+    reroute_attempt = 0
+
+    while reroute_attempt < MAX_REROUTES:
+        host, port, service_identifier = get_instance_after_round_robin("rides")
+
         try:
             if circuit_breaker.is_open(service_identifier):
                 raise HTTPException(status_code=500, detail="Service failed too many times, please wait")
 
-            r = httpx.get(f"http://{host}:{port}/api/rides/passengers/{passenger_id}")
+            r = httpx.post(f"http://{host}:{port}/api/rides/passengers", json=jsonable_encoder(newPassenger),
+                           headers=HEADERS)
 
             if r.status_code == 500 or r.status_code == 408:
                 circuit_breaker.record_failure(service_identifier)
-                raise HTTPException(status_code=r.status_code, detail=r.text)
+                reroute_attempt += 1
+                logger.error('Call to service [RIDES] failed. Rerouting...')
+                continue
             elif r.status_code == 200:
-                cache.set(f"passenger_{passenger_id}", json.dumps(r.json()), ex=timedelta(minutes=1))
                 return r.json()
             else:
-                raise HTTPException(status_code=r.status_code, detail=r.text)
+                circuit_breaker.record_failure(service_identifier)
+                reroute_attempt += 1
+                logger.error('Call to service [RIDES] failed. Rerouting...')
 
         except ConnectError:
             circuit_breaker.record_failure(service_identifier)
-            raise HTTPException(status_code=500, detail="Request timeout to RIDES service")
+            reroute_attempt += 1
+            logger.error('Call to service [RIDES] failed. Rerouting...')
 
-
-@app.post("/passengers")
-async def create_driver(newPassenger: NewPassenger) -> Passenger | dict:
-    host, port, service_identifier = get_instance_after_round_robin("rides")
-
-    try:
-        if circuit_breaker.is_open(service_identifier):
-            raise HTTPException(status_code=500, detail="Service failed too many times, please wait")
-
-        r = httpx.post(f"http://{host}:{port}/api/rides/passengers", json=jsonable_encoder(newPassenger), headers=HEADERS)
-
-        if r.status_code == 500 or r.status_code == 408:
-            circuit_breaker.record_failure(service_identifier)
-            raise HTTPException(status_code=r.status_code, detail=r.text)
-        elif r.status_code == 200:
-            return r.json()
-        else:
-            raise HTTPException(status_code=r.status_code, detail=r.text)
-
-    except ConnectError:
-        circuit_breaker.record_failure(service_identifier)
-        raise HTTPException(status_code=500, detail="Request timeout to RIDES service")
+    raise HTTPException(status_code=500, detail="Maximum reroutes has been reached. Something is broken with [RIDES] "
+                                                "service")
 
 
 @app.post("/rides")
 async def request_ride(requestRide: RequestRide) -> RequestRideResponse | dict:
-    host, port, service_identifier = get_instance_after_round_robin("rides")
+    reroute_attempt = 0
 
-    try:
-        if circuit_breaker.is_open(service_identifier):
-            raise HTTPException(status_code=500, detail="Service failed too many times, please wait")
+    while reroute_attempt < MAX_REROUTES:
+        host, port, service_identifier = get_instance_after_round_robin("rides")
 
-        r = httpx.post(f"http://{host}:{port}/api/rides", json=jsonable_encoder(requestRide), headers=HEADERS)
-
-        if r.status_code == 500 or r.status_code == 408:
-            circuit_breaker.record_failure(service_identifier)
-            raise HTTPException(status_code=r.status_code, detail=r.text)
-        elif r.status_code == 200:
-            return r.json()
-        else:
-            raise HTTPException(status_code=r.status_code, detail=r.text)
-
-    except ConnectError:
-        circuit_breaker.record_failure(service_identifier)
-        raise HTTPException(status_code=500, detail="Request timeout to RIDES service")
-
-
-@app.get("/drivers/{driver_id}")
-async def get_driver(driver_id: int, cache=Depends(get_redis)):
-    host, port, service_identifier = get_instance_after_round_robin("drivers")
-
-    if (cached_driver := cache.get(f"driver_{driver_id}")) is not None:
-        return json.loads(cached_driver)
-    else:
         try:
             if circuit_breaker.is_open(service_identifier):
                 raise HTTPException(status_code=500, detail="Service failed too many times, please wait")
 
-            r = httpx.get(f"http://{host}:{port}/api/drivers/{driver_id}")
+            r = httpx.post(f"http://{host}:{port}/api/rides", json=jsonable_encoder(requestRide), headers=HEADERS)
 
             if r.status_code == 500 or r.status_code == 408:
                 circuit_breaker.record_failure(service_identifier)
-                raise HTTPException(status_code=r.status_code, detail=r.text)
+                reroute_attempt += 1
+                logger.error('Call to service [RIDES] failed. Rerouting...')
+                continue
             elif r.status_code == 200:
-                cache.set(f"driver_{driver_id}", json.dumps(r.json()), ex=timedelta(minutes=1))
                 return r.json()
             else:
-                raise HTTPException(status_code=r.status_code, detail=r.text)
+                circuit_breaker.record_failure(service_identifier)
+                reroute_attempt += 1
+                logger.error('Call to service [RIDES] failed. Rerouting...')
 
         except ConnectError:
             circuit_breaker.record_failure(service_identifier)
-            raise HTTPException(status_code=500, detail="Request timeout to DRIVERS service")
+            reroute_attempt += 1
+            logger.error('Call to service [RIDES] failed. Rerouting...')
+
+    raise HTTPException(status_code=500,
+                        detail="Maximum reroutes has been reached. Something is broken with [RIDES] service")
+
+
+@app.get("/drivers/{driver_id}")
+async def get_driver(driver_id: int, cache=Depends(get_redis)):
+    reroute_attempt = 0
+
+    if (cached_driver := cache.get(f"driver_{driver_id}")) is not None:
+        return json.loads(cached_driver)
+    else:
+        while reroute_attempt < MAX_REROUTES:
+            host, port, service_identifier = get_instance_after_round_robin("rides")
+
+            try:
+                if circuit_breaker.is_open(service_identifier):
+                    raise HTTPException(status_code=500, detail="Service failed too many times, please wait")
+
+                r = httpx.get(f"http://{host}:{port}/api/drivers/{driver_id}")
+
+                if r.status_code == 500 or r.status_code == 408:
+                    circuit_breaker.record_failure(service_identifier)
+                    reroute_attempt += 1
+                    logger.error('Call to service [DRIVERS] failed. Rerouting...')
+                    continue
+                elif r.status_code == 200:
+                    cache.set(f"driver_{driver_id}", json.dumps(r.json()), ex=timedelta(minutes=1))
+                    return r.json()
+                else:
+                    circuit_breaker.record_failure(service_identifier)
+                    reroute_attempt += 1
+                    logger.error('Call to service [DRIVERS] failed. Rerouting...')
+
+            except ConnectError:
+                circuit_breaker.record_failure(service_identifier)
+                reroute_attempt += 1
+                logger.error('Call to service [DRIVERS] failed. Rerouting...')
+
+        raise HTTPException(status_code=500,
+                            detail="Maximum reroutes has been reached. Something is broken with [DRIVERS] service")
 
 
 @app.post("/drivers")
 async def create_driver(newDriver: NewDriver) -> Driver | dict:
-    host, port, service_identifier = get_instance_after_round_robin("drivers")
+    reroute_attempt = 0
 
-    try:
-        if circuit_breaker.is_open(service_identifier):
-            raise HTTPException(status_code=500, detail="Service failed too many times, please wait")
+    while reroute_attempt < MAX_REROUTES:
+        host, port, service_identifier = get_instance_after_round_robin("drivers")
 
-        r = httpx.post(f"http://{host}:{port}/api/drivers", json=jsonable_encoder(newDriver), headers=HEADERS)
+        try:
+            if circuit_breaker.is_open(service_identifier):
+                raise HTTPException(status_code=500, detail="Service failed too many times, please wait")
 
-        if r.status_code == 500 or r.status_code == 408:
+            r = httpx.post(f"http://{host}:{port}/api/drivers", json=jsonable_encoder(newDriver), headers=HEADERS)
+
+            if r.status_code == 500 or r.status_code == 408:
+                circuit_breaker.record_failure(service_identifier)
+                reroute_attempt += 1
+                logger.error('Call to service [DRIVERS] failed. Rerouting...')
+                continue
+            elif r.status_code == 200:
+                return r.json()
+            else:
+                circuit_breaker.record_failure(service_identifier)
+                reroute_attempt += 1
+                logger.error('Call to service [DRIVERS] failed. Rerouting...')
+
+        except ConnectError:
             circuit_breaker.record_failure(service_identifier)
-            raise HTTPException(status_code=r.status_code, detail=r.text)
-        elif r.status_code == 200:
-            return r.json()
-        else:
-            raise HTTPException(status_code=r.status_code, detail=r.text)
+            reroute_attempt += 1
+            logger.error('Call to service [DRIVERS] failed. Rerouting...')
 
-    except ConnectError:
-        circuit_breaker.record_failure(service_identifier)
-        raise HTTPException(status_code=500, detail="Request timeout to DRIVERS service")
-
-
-####################
+    raise HTTPException(status_code=500, detail="Maximum reroutes has been reached. Something is broken with ["
+                                                "DRIVERS] service")
 
 
 @app.put("/rides/{ride_id}/state")
 async def change_ride_state(ride_id: int, state: ChangeRideState, cache=Depends(get_redis)) -> ChangeRideState:
-    host, port, service_identifier = get_instance_after_round_robin("rides")
+    reroute_attempt = 0
 
-    try:
-        if circuit_breaker.is_open(service_identifier):
-            raise HTTPException(status_code=500, detail="Service failed too many times, please wait")
+    while reroute_attempt < MAX_REROUTES:
+        host, port, service_identifier = get_instance_after_round_robin("rides")
 
-        r = httpx.put(f"http://{host}:{port}/api/rides/{ride_id}/state",
-                      json=jsonable_encoder(state), headers=HEADERS)
+        try:
+            if circuit_breaker.is_open(service_identifier):
+                raise HTTPException(status_code=500, detail="Service failed too many times, please wait")
 
-        if r.status_code == 500 or r.status_code == 408:
+            r = httpx.put(f"http://{host}:{port}/api/rides/{ride_id}/state",
+                          json=jsonable_encoder(state), headers=HEADERS)
+
+            if r.status_code == 500 or r.status_code == 408:
+                circuit_breaker.record_failure(service_identifier)
+                reroute_attempt += 1
+                logger.error('Call to service [RIDES] failed. Rerouting...')
+                continue
+            elif r.status_code == 200:
+                if (cache.get(f"ride_{ride_id}")) is not None:
+                    cache.delete(f"ride_{ride_id}")
+                return r.json()
+            else:
+                circuit_breaker.record_failure(service_identifier)
+                reroute_attempt += 1
+                logger.error('Call to service [RIDES] failed. Rerouting...')
+
+        except ConnectError:
             circuit_breaker.record_failure(service_identifier)
-            raise HTTPException(status_code=r.status_code, detail=r.text)
-        elif r.status_code == 200:
-            if (cache.get(f"ride_{ride_id}")) is not None:
-                cache.delete(f"ride_{ride_id}")
-            return r.json()
-        else:
-            raise HTTPException(status_code=r.status_code, detail=r.text)
+            reroute_attempt += 1
+            logger.error('Call to service [RIDES] failed. Rerouting...')
 
-    except ConnectError:
-        circuit_breaker.record_failure(service_identifier)
-        raise HTTPException(status_code=500, detail="Request timeout to RIDES service")
+    raise HTTPException(status_code=500, detail="Maximum reroutes has been reached. Something is broken with [RIDES] "
+                                                "service")
 
 
 @app.put("/drivers/{driver_id}/availability")
 async def change_driver_availability(driver_id: int, availability: Availability) -> Availability:
-    host, port, service_identifier = get_instance_after_round_robin("drivers")
+    reroute_attempt = 0
 
-    try:
-        if circuit_breaker.is_open(service_identifier):
-            raise HTTPException(status_code=500, detail="Service failed too many times, please wait")
+    while reroute_attempt < MAX_REROUTES:
+        host, port, service_identifier = get_instance_after_round_robin("drivers")
 
-        r = httpx.put(f"http://{host}:{port}/api/drivers/{driver_id}/availability",
-                      json=jsonable_encoder(availability), headers=HEADERS)
+        try:
+            if circuit_breaker.is_open(service_identifier):
+                raise HTTPException(status_code=500, detail="Service failed too many times, please wait")
 
-        if r.status_code == 500 or r.status_code == 408:
+            r = httpx.put(f"http://{host}:{port}/api/drivers/{driver_id}/availability",
+                          json=jsonable_encoder(availability), headers=HEADERS)
+
+            if r.status_code == 500 or r.status_code == 408:
+                circuit_breaker.record_failure(service_identifier)
+                reroute_attempt += 1
+                logger.error('Call to service [DRIVERS] failed. Rerouting...')
+                continue
+            elif r.status_code == 200:
+                return r.json()
+            else:
+                circuit_breaker.record_failure(service_identifier)
+                reroute_attempt += 1
+                logger.error('Call to service [DRIVERS] failed. Rerouting...')
+
+        except ConnectError:
             circuit_breaker.record_failure(service_identifier)
-            raise HTTPException(status_code=r.status_code, detail=r.text)
-        elif r.status_code == 200:
-            return r.json()
-        else:
-            raise HTTPException(status_code=r.status_code, detail=r.text)
+            reroute_attempt += 1
+            logger.error('Call to service [DRIVERS] failed. Rerouting...')
 
-    except ConnectError:
-        circuit_breaker.record_failure(service_identifier)
-        raise HTTPException(status_code=500, detail="Request timeout to DRIVERS service")
+    raise HTTPException(status_code=500, detail="Maximum reroutes has been reached. Something is broken with ["
+                                                "DRIVERS] service")
 
 
 @app.put("/drivers/{driver_id}/ride")
 async def complete_ride(driver_id: int, state: CompleteRide):
-    host, port, service_identifier = get_instance_after_round_robin("drivers")
+    reroute_attempt = 0
 
-    try:
-        if circuit_breaker.is_open(service_identifier):
-            raise HTTPException(status_code=500, detail="Service failed too many times, please wait")
+    while reroute_attempt < MAX_REROUTES:
+        host, port, service_identifier = get_instance_after_round_robin("drivers")
 
-        r = httpx.put(f"http://{host}:{port}/api/drivers/{driver_id}/ride",
-                      json=jsonable_encoder(state), headers=HEADERS)
+        try:
+            if circuit_breaker.is_open(service_identifier):
+                raise HTTPException(status_code=500, detail="Service failed too many times, please wait")
 
-        if r.status_code == 500 or r.status_code == 408:
+            r = httpx.put(f"http://{host}:{port}/api/drivers/{driver_id}/ride",
+                          json=jsonable_encoder(state), headers=HEADERS)
+
+            if r.status_code == 500 or r.status_code == 408:
+                circuit_breaker.record_failure(service_identifier)
+                reroute_attempt += 1
+                logger.error('Call to service [DRIVERS] failed. Rerouting...')
+                continue
+            elif r.status_code == 200:
+                return r.json()
+            else:
+                circuit_breaker.record_failure(service_identifier)
+                reroute_attempt += 1
+                logger.error('Call to service [DRIVERS] failed. Rerouting...')
+
+        except ConnectError:
             circuit_breaker.record_failure(service_identifier)
-            raise HTTPException(status_code=r.status_code, detail=r.text)
-        elif r.status_code == 200:
-            return r.json()
-        else:
-            raise HTTPException(status_code=r.status_code, detail=r.text)
+            reroute_attempt += 1
+            logger.error('Call to service [DRIVERS] failed. Rerouting...')
 
-    except ConnectError:
-        circuit_breaker.record_failure(service_identifier)
-        raise HTTPException(status_code=500, detail="Request timeout to DRIVERS service")
+    raise HTTPException(status_code=500, detail="Maximum reroutes has been reached. Something is broken with ["
+                                                "DRIVERS] service")
 
 
 @app.get("/status", status_code=200)
