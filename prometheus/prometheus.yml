@@ -6,6 +6,6 @@ scrape_configs:
     metrics_path: '/actuator/prometheus'
     scrape_interval: 3s
     static_configs:
-      - targets: ['host.docker.internal:3030']
+      - targets: ['host.docker.internal:3030', 'host.docker.internal:3031', 'host.docker.internal:3032']
         labels:
           application: 'Rides Service'

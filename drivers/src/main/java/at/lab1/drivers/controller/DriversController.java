@@ -9,12 +9,16 @@ import io.github.bucket4j.Bucket;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.time.Duration;
 import java.util.concurrent.Callable;
 
@@ -23,6 +27,15 @@ import java.util.concurrent.Callable;
 @RequiredArgsConstructor
 @RequestMapping("api/drivers")
 public class DriversController {
+
+    @Value("${spring.datasource.url}")
+    private String dbUrl;
+
+    @Value("${spring.datasource.username}")
+    private String dbUsername;
+
+    @Value("${spring.datasource.password}")
+    private String dbPassword;
 
     private final DriversService driversService;
     private Bucket bucket;
@@ -108,4 +121,15 @@ public class DriversController {
     @GetMapping(path = "/status")
     @ResponseStatus(code = HttpStatus.OK)
     public void statusEndpoint() { }
+
+    @GetMapping("/health")
+    public ResponseEntity<String> healthEndpoint() {
+        try {
+            try (Connection connection = DriverManager.getConnection(dbUrl, dbUsername, dbPassword)) {
+                return new ResponseEntity<>("Database connection is OK", HttpStatus.OK);
+            }
+        } catch (SQLException e) {
+            return new ResponseEntity<>("Database connection error", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 }

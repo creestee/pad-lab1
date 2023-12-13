@@ -11,24 +11,21 @@ services:
       - REDIS_HOST=redis-cache
       - REDIS_PORT=6379
       - REQUEST_TIMEOUT=2
-    depends_on:
-      - redis-cache
-      - service-discovery
+#    depends_on:
+#      - service-discovery
 
-  service-discovery:
-    image: creesteee/service-discovery:latest
-    container_name: service-discovery
-    restart: always
-    ports:
-      - "3050:3050"
-    environment:
-      - REDIS_HOST=redis-cache
-      - REDIS_PORT=6379
-      - REQUEST_TIMEOUT=1
-    depends_on:
-      - redis-cache
+#  service-discovery:
+#    image: creesteee/service-discovery:latest
+#    container_name: service-discovery
+#    restart: always
+#    ports:
+#      - "3050:3050"
+#    environment:
+#      - REDIS_HOST=redis-cache
+#      - REDIS_PORT=6379
+#      - REQUEST_TIMEOUT=1
 
-  rides:
+  rides-1:
     image: creesteee/rides-service:latest
 
 #    deploy:
@@ -52,12 +49,96 @@ services:
       - SERVICE_PORT=3030
 
     depends_on:
-      - redis-cache
-      - service-discovery
+#      - service-discovery
       - postgres2
       - rabbitmq
 
-  drivers:
+  rides-2:
+    image: creesteee/rides-service:latest
+
+    #    deploy:
+    #      mode: replicated
+    #      replicas: 3
+    links:
+      - postgres2
+    ports:
+      - "3031:3031"
+    environment:
+      - TIMEOUT_MS=50
+      - DB_RIDES_URL=jdbc:postgresql://postgres2/ridesDB
+      - DB_RIDES_USER=user2
+      - DB_RIDES_PASSWORD=password2
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASSWORD=guest
+      - SERVICE_DISCOVERY_HOST=service-discovery
+      - SERVICE_DISCOVERY_PORT=3050
+      - SERVICE_PORT=3031
+
+    depends_on:
+#      - service-discovery
+      - postgres2
+      - rabbitmq
+
+  rides-3:
+    image: creesteee/rides-service:latest
+
+    #    deploy:
+    #      mode: replicated
+    #      replicas: 3
+    links:
+      - postgres2
+    ports:
+      - "3032:3032"
+    environment:
+      - TIMEOUT_MS=50
+      - DB_RIDES_URL=jdbc:postgresql://postgres2/ridesDB
+      - DB_RIDES_USER=user2
+      - DB_RIDES_PASSWORD=password2
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASSWORD=guest
+      - SERVICE_DISCOVERY_HOST=service-discovery
+      - SERVICE_DISCOVERY_PORT=3050
+      - SERVICE_PORT=3032
+
+    depends_on:
+#      - service-discovery
+      - postgres2
+      - rabbitmq
+
+  rides-4:
+    image: creesteee/rides-service:latest
+
+    #    deploy:
+    #      mode: replicated
+    #      replicas: 3
+    links:
+      - postgres2
+    ports:
+      - "3033:3033"
+    environment:
+      - TIMEOUT_MS=50
+      - DB_RIDES_URL=jdbc:postgresql://postgres2/ridesDB
+      - DB_RIDES_USER=user2
+      - DB_RIDES_PASSWORD=password2
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASSWORD=guest
+      - SERVICE_DISCOVERY_HOST=service-discovery
+      - SERVICE_DISCOVERY_PORT=3050
+      - SERVICE_PORT=3033
+
+    depends_on:
+      #      - service-discovery
+      - postgres2
+      - rabbitmq
+
+
+  drivers-1:
     image: creesteee/drivers-service:latest
 
 #    deploy:
@@ -66,7 +147,7 @@ services:
     links:
       - postgres1
     ports:
-      - "7070-7080:7070"
+      - "7070:7070"
     environment:
       - TIMEOUT_MS=5000
       - DB_DRIVERS_URL=jdbc:postgresql://postgres1/driversDB
@@ -81,10 +162,94 @@ services:
       - SERVICE_PORT=7070
 
     depends_on:
-      - redis-cache
-      - service-discovery
+#      - service-discovery
       - postgres1
       - rabbitmq
+
+  drivers-2:
+    image: creesteee/drivers-service:latest
+
+    #    deploy:
+    #      mode: replicated
+    #      replicas: 2
+    links:
+      - postgres1
+    ports:
+      - "7071:7071"
+    environment:
+      - TIMEOUT_MS=5000
+      - DB_DRIVERS_URL=jdbc:postgresql://postgres1/driversDB
+      - DB_DRIVERS_USER=user1
+      - DB_DRIVERS_PASSWORD=password1
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASSWORD=guest
+      - SERVICE_DISCOVERY_HOST=service-discovery
+      - SERVICE_DISCOVERY_PORT=3050
+      - SERVICE_PORT=7071
+
+    depends_on:
+      #      - service-discovery
+      - postgres1
+      - rabbitmq
+
+  drivers-3:
+    image: creesteee/drivers-service:latest
+
+    #    deploy:
+    #      mode: replicated
+    #      replicas: 2
+    links:
+      - postgres1
+    ports:
+      - "7072:7072"
+    environment:
+      - TIMEOUT_MS=5000
+      - DB_DRIVERS_URL=jdbc:postgresql://postgres1/driversDB
+      - DB_DRIVERS_USER=user1
+      - DB_DRIVERS_PASSWORD=password1
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASSWORD=guest
+      - SERVICE_DISCOVERY_HOST=service-discovery
+      - SERVICE_DISCOVERY_PORT=3050
+      - SERVICE_PORT=7072
+
+    depends_on:
+      #      - service-discovery
+      - postgres1
+      - rabbitmq
+
+  drivers-4:
+    image: creesteee/drivers-service:latest
+
+    #    deploy:
+    #      mode: replicated
+    #      replicas: 2
+    links:
+      - postgres1
+    ports:
+      - "7073:7073"
+    environment:
+      - TIMEOUT_MS=5000
+      - DB_DRIVERS_URL=jdbc:postgresql://postgres1/driversDB
+      - DB_DRIVERS_USER=user1
+      - DB_DRIVERS_PASSWORD=password1
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASSWORD=guest
+      - SERVICE_DISCOVERY_HOST=service-discovery
+      - SERVICE_DISCOVERY_PORT=3050
+      - SERVICE_PORT=7073
+
+    depends_on:
+      #      - service-discovery
+      - postgres1
+      - rabbitmq
+
 
   postgres1:
     image: postgres:latest
@@ -118,16 +283,16 @@ services:
       - "5672:5672"
       - "15672:15672"
 
-  redis-cache:
-    image: redis:alpine
-    hostname: redis-cache
-    container_name: redis-cache
-    restart: on-failure
-    ports:
-      - '6379:6379'
-    command: redis-server
-    volumes:
-      - cache:/data
+#  redis-cache:
+#    image: redis:alpine
+#    hostname: redis-cache
+#    container_name: redis-cache
+#    restart: on-failure
+#    ports:
+#      - '6379:6379'
+#    command: redis-server
+#    volumes:
+#      - cache:/data
 
   prometheus:
     image: prom/prometheus:latest
@@ -152,7 +317,36 @@ services:
     volumes:
       - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
 
+  redis-node-1:
+    image: redis:7.2
+    ports:
+      - 7000:7000
+    hostname: redis-node-1
+    container_name: redis-node-1
+    volumes:
+      - ./redis/7000:/redis
+    command: redis-server /redis/redis.conf
+
+  redis-node-2:
+    image: redis:7.2
+    ports:
+      - 7001:7001
+    hostname: redis-node-2
+    container_name: redis-node-2
+    volumes:
+      - ./redis/7001:/redis
+    command: redis-server /redis/redis.conf
+
+  redis-node-3:
+    image: redis:7.2
+    ports:
+      - 7002:7002
+    hostname: redis-node-3
+    container_name: redis-node-3
+    volumes:
+      - ./redis/7002:/redis
+    command: redis-server /redis/redis.conf
+
 volumes:
   postgres1-data:
   postgres2-data:
-  cache:

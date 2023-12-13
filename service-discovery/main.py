@@ -14,7 +14,7 @@ from pydantic import BaseModel
 from apscheduler.schedulers.background import BackgroundScheduler
 
 app = FastAPI()
-time_to_expire = 20  # seconds
+# time_to_expire = 20  # seconds
 
 
 log_config = {
@@ -82,14 +82,18 @@ def send_heartbeat():
         host, port, service_name = instance_info["host"], instance_info["port"], instance_info["name"]
         try:
             r = httpx.get(f"http://{host}:{port}/api/{service_name}/status")
-            if r.status_code == 200:
-                get_redis().expire(f"{instance}", time_to_expire)
+            # if r.status_code == 200:
+            #     get_redis().expire(f"{instance}", time_to_expire)
         except ConnectError:
             pass
 
 
 @app.on_event('startup')
 def init_data():
+    registered_instances = get_redis().keys(f'service:*')
+    logger.info(f"Deleting old services keys : {registered_instances}")
+    for instance in registered_instances:
+        get_redis().delete(instance)
     scheduler = BackgroundScheduler()
     scheduler.add_job(send_heartbeat, 'cron', second='*/5')
     scheduler.start()
@@ -100,7 +104,7 @@ async def register_service(service: Service, store=Depends(get_redis)):
     key = f"service:{service.name}:{uuid.uuid4().hex}"
     data = {"host": service.host, "port": service.port, "name": service.name}
     logger.info(f"A new [{service.name}] service has been registered --- {data}")
-    store.set(key, json.dumps(data), ex=time_to_expire)
+    store.set(key, json.dumps(data))
     return key
 
 
